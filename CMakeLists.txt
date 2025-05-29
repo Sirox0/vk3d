@@ -24,6 +24,7 @@ set(SOURCES
 find_package(SDL3 REQUIRED)
 find_package(Vulkan REQUIRED)
 
+set(PROFILER_IN_DEBUG_AND_RELEASE OFF)
 add_subdirectory(external/JoltC)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
