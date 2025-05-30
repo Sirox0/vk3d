@@ -311,7 +311,6 @@ void gameInit() {
     glm_mat4_identity(gameglobals.cubeUniformBufferMemoryRaw);
     glm_perspective(glm_rad(45.0f), (f32)vkglobals.swapchainExtent.width / vkglobals.swapchainExtent.height, 0.0f, 1.0f, gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4) * 2);
     (*((mat4*)(gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4) * 2)))[1][1] *= -1;
-    (*((mat4*)(gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4) * 2)))[0][0] *= -1;
 
     {
         VkMappedMemoryRange memoryRange = {};
@@ -327,7 +326,7 @@ void gameInit() {
 }
 
 void updateCubeUbo() {
-    glm_rotate(gameglobals.cubeUniformBufferMemoryRaw, glm_rad(90.0f) * deltaTime / 1000.0f, (vec3){0.0f, -1.0f, 0.0f});
+    glm_rotate(gameglobals.cubeUniformBufferMemoryRaw, glm_rad(90.0f) * deltaTime / 1000.0f, (vec3){0.0f, 1.0f, 0.0f});
     glm_lookat((vec3){0.0f, -0.5f, -1.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, -1.0f, 0.0f}, gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4));
 
     VkMappedMemoryRange memoryRange = {};

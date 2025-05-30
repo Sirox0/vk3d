@@ -12,7 +12,7 @@ if(VALIDATION)
 endif()
 
 add_compile_definitions(VK_NO_PROTOTYPES)
-add_compile_definitions(CGLM_FORCE_DEPTH_ZERO_TO_ONE)
+add_compile_definitions(CGLM_FORCE_LEFT_HANDED CGLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 if(WIN32)
     add_compile_definitions(_CRT_SECURE_NO_DEPRECATE)
