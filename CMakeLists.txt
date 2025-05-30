@@ -12,6 +12,7 @@ if(VALIDATION)
 endif()
 
 add_compile_definitions(VK_NO_PROTOTYPES)
+add_compile_definitions(CGLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 if(WIN32)
     add_compile_definitions(_CRT_SECURE_NO_DEPRECATE)
@@ -19,6 +20,14 @@ endif()
 
 set(SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/main.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/mathext.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/sdl.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/vkInit.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/pipeline.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/garbage.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/vkFunctions.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/util.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/game.c
 )
 
 find_package(SDL3 REQUIRED)
@@ -42,3 +51,5 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE CMAKE_EXPORT_COMPILE_CO
 if(WIN32)
     add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_RUNTIME_DLLS:${CMAKE_PROJECT_NAME}> COMMAND_EXPAND_LISTS $<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>)
 endif()
+
+add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_LIST_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets)
