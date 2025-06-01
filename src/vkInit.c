@@ -1,12 +1,13 @@
 #include <vulkan/vulkan.h>
+#include <SDL3/SDL_vulkan.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "numtypes.h"
 #include "vkFunctions.h"
-#include "vkInit.h"
 #include "sdl.h"
+#include "vkInit.h"
 #include "mathext.h"
 #include "pipeline.h"
 #include "game.h"
@@ -61,7 +62,7 @@ void vkInit() {
     {
         const char** instanceExtensions = NULL;
         u32 instanceExtensionCount = 0;
-        sdlQueryInstanceExtensions(&instanceExtensionCount, &instanceExtensions);
+        instanceExtensions = (const char**)SDL_Vulkan_GetInstanceExtensions(&instanceExtensionCount);
 
         VkInstanceCreateInfo instanceInfo = {};
         instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -75,7 +76,10 @@ void vkInit() {
 
     loadVulkanInstanceFunctions(vkglobals.instance);
 
-    sdlCreateSurface(vkglobals.instance, &vkglobals.surface);
+    if (SDL_Vulkan_CreateSurface(window, vkglobals.instance, NULL, &vkglobals.surface) != true) {
+        printf("failed to create vulkan surface for sdl window\n");
+        exit(1);
+    }
 
     {
         u32 physicalDeviceCount;
@@ -217,7 +221,11 @@ void vkInit() {
     } else {
         u32 w;
         u32 h;
-        sdlQueryWindowResolution(&w, &h);
+        // width and height normally are positive integers
+        if (SDL_GetWindowSizeInPixels(window, (i32*)&w, (i32*)&h) != true) {
+            printf("failed to get window size from sdl\n");
+            exit(1);
+        }
 
         vkglobals.swapchainExtent.width = w;
         vkglobals.swapchainExtent.height = h;
@@ -296,6 +304,6 @@ void vkQuit() {
     vkDestroyCommandPool(vkglobals.device, vkglobals.shortCommandPool, NULL);
     vkDestroyCommandPool(vkglobals.device, vkglobals.commandPool, NULL);
     vkDestroyDevice(vkglobals.device, NULL);
-    sdlDestroySurface(vkglobals.instance, vkglobals.surface);
+    SDL_Vulkan_DestroySurface(vkglobals.instance, vkglobals.surface, NULL);
     vkDestroyInstance(vkglobals.instance, NULL);
 }
