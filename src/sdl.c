@@ -15,7 +15,8 @@ u32 deltaTime = 0.0f;
 
 void sdlInit() {
     SDL_Init(SDL_INIT_EVENTS);
-    window = SDL_CreateWindow(TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_VULKAN);
+    window = SDL_CreateWindow(TITLE, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_VULKAN | SDL_WINDOW_FULLSCREEN);
+    SDL_SetWindowRelativeMouseMode(window, true);
 
     if (window == NULL) {
         printf("failed to create window\n");
