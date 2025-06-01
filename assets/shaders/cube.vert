@@ -6,12 +6,12 @@ layout(location = 1) in vec3 color;
 layout(binding = 0) uniform UBO {
     mat4 model;
     mat4 view;
-    mat4 proj;
+    mat4 projection;
 };
 
 layout(location = 0) out vec3 fragColor;
 
 void main() {
-    gl_Position = proj * view * model * vec4(pos, 1.0);
+    gl_Position = projection * view * model * vec4(pos, 1.0);
     fragColor = color;
 }

@@ -33,10 +33,7 @@ void gameInit() {
     garbageCreate(GARBAGE_CMD_BUFFER_NUM, garbageCmdBuffers, GARBAGE_FENCE_NUM, garbageFences);
 
     {
-        struct {
-            vec3 pos;
-            vec3 color;
-        } vertexbuf[] = {
+        vertex_input_cube_t vertexbuf[] = {
             {{-0.1f, 0.1f, 0.1f}, {1.0f, 0.0f, 0.0f}},
             {{-0.1f, 0.1f, -0.1f}, {0.0f, 1.0f, 0.0f}},
             {{0.1f, 0.1f, -0.1f}, {0.0f, 0.0f, 1.0f}},
@@ -271,17 +268,17 @@ void gameInit() {
         VkVertexInputBindingDescription bindingDesc = {};
         bindingDesc.binding = 0;
         bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        bindingDesc.stride = sizeof(vec3) * 2;
+        bindingDesc.stride = sizeof(vertex_input_cube_t);
 
         VkVertexInputAttributeDescription attributeDescs[2] = {};
         attributeDescs[0].binding = 0;
         attributeDescs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescs[0].location = 0;
-        attributeDescs[0].offset = 0;
+        attributeDescs[0].offset = offsetof(vertex_input_cube_t, pos);
         attributeDescs[1].binding = 0;
         attributeDescs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescs[1].location = 1;
-        attributeDescs[1].offset = sizeof(vec3);
+        attributeDescs[1].offset = offsetof(vertex_input_cube_t, color);
 
         pipelineInfo.vertexInputState.vertexAttributeDescriptionCount = 2;
         pipelineInfo.vertexInputState.pVertexAttributeDescriptions = attributeDescs;
@@ -309,6 +306,7 @@ void gameInit() {
     }
 
     glm_mat4_identity(gameglobals.cubeUniformBufferMemoryRaw);
+
     glm_perspective(glm_rad(45.0f), (f32)vkglobals.swapchainExtent.width / vkglobals.swapchainExtent.height, 0.0f, 1.0f, gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4) * 2);
     (*((mat4*)(gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4) * 2)))[1][1] *= -1;
 
@@ -325,14 +323,53 @@ void gameInit() {
     garbageWaitAndDestroy(GARBAGE_CMD_BUFFER_NUM, garbageCmdBuffers, GARBAGE_BUFFER_NUM, garbageBuffers, GARBAGE_BUFFER_MEMORY_NUM, garbageBuffersMem, GARBAGE_FENCE_NUM, garbageFences);
 }
 
-void updateCubeUbo() {
-    glm_rotate(gameglobals.cubeUniformBufferMemoryRaw, glm_rad(90.0f) * deltaTime / 1000.0f, (vec3){0.0f, 1.0f, 0.0f});
-    glm_lookat((vec3){0.0f, -0.5f, -1.0f}, (vec3){0.0f, 0.0f, 0.0f}, (vec3){0.0f, -1.0f, 0.0f}, gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4));
+void gameEvent(SDL_Event* e) {
+    if (e->type == SDL_EVENT_KEY_DOWN) {
+        if (e->key.key == SDLK_W) gameglobals.cam.velocity[2] = 1.0f / 2000.0f;
+        else if (e->key.key == SDLK_S) gameglobals.cam.velocity[2] = -1.0f / 2000.0f;
+        else if (e->key.key == SDLK_A) gameglobals.cam.velocity[0] = -1.0f / 2000.0f;
+        else if (e->key.key == SDLK_D) gameglobals.cam.velocity[0] = 1.0f / 2000.0f;
+        else if (e->key.key == SDLK_SPACE) gameglobals.cam.velocity[1] = 1.0f / 2000.0f;
+        else if (e->key.key == SDLK_LCTRL) gameglobals.cam.velocity[1] = -1.0f / 2000.0f;
+    } else if (e->type == SDL_EVENT_KEY_UP) {
+        if (e->key.key == SDLK_W) gameglobals.cam.velocity[2] = 0;
+        else if (e->key.key == SDLK_S) gameglobals.cam.velocity[2] = 0;
+        else if (e->key.key == SDLK_A) gameglobals.cam.velocity[0] = 0;
+        else if (e->key.key == SDLK_D) gameglobals.cam.velocity[0] = 0;
+        else if (e->key.key == SDLK_SPACE) gameglobals.cam.velocity[1] = 0;
+        else if (e->key.key == SDLK_LCTRL) gameglobals.cam.velocity[1] = 0;
+    } else if (e->type == SDL_EVENT_MOUSE_MOTION) {
+        gameglobals.cam.yaw += (f32)e->motion.xrel / 400.0f;
+        gameglobals.cam.pitch -= (f32)e->motion.yrel / 400.0f;
+    }
+}
 
+void updateCubeUbo() {
+    versor y, p;
+    glm_quatv(y, gameglobals.cam.yaw, (vec3){0.0f, -1.0f, 0.0f});
+    glm_quatv(p, gameglobals.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
+    glm_quat_mul(y, p, y);
+    
+    {
+        mat4 rot;
+        glm_quat_mat4(y, rot);
+        vec3 vel;
+        glm_mat4_mulv3(rot, (vec3){gameglobals.cam.velocity[0] * deltaTime, gameglobals.cam.velocity[1] * deltaTime, gameglobals.cam.velocity[2] * deltaTime}, 0.0f, vel);
+        glm_vec3_add(gameglobals.cam.position, vel, gameglobals.cam.position);
+    }
+
+    {
+        glm_quat_look(gameglobals.cam.position, y, gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4));
+        glm_translate(gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4), (vec3){-gameglobals.cam.position[0], -gameglobals.cam.position[1], -gameglobals.cam.position[2]});
+    }
+
+    glm_rotate(gameglobals.cubeUniformBufferMemoryRaw, glm_rad(90.0f) * deltaTime / 1000.0f, (vec3){0.0f, -1.0f, 0.0f});
+
+    VkDeviceSize alignedSize = sizeof(mat4) * 2 + getAlignCooficient(sizeof(mat4) * 2, vkglobals.deviceProperties.limits.nonCoherentAtomSize);
     VkMappedMemoryRange memoryRange = {};
     memoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memoryRange.offset = 0;
-    memoryRange.size = VK_WHOLE_SIZE;
+    memoryRange.size = alignedSize > (sizeof(mat4) * 3) ? VK_WHOLE_SIZE : alignedSize;
     memoryRange.memory = gameglobals.cubeUniformBufferMemory;
 
     VK_ASSERT(vkFlushMappedMemoryRanges(vkglobals.device, 1, &memoryRange), "failed to flush device memory\n");

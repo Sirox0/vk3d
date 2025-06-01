@@ -62,7 +62,7 @@ void sdlLoop() {
             if (event.type == SDL_EVENT_QUIT) {
                 loopActive = 0;
                 break;
-            }
+            } else gameEvent(&event);
         }
 
         u32 startTime = sdlGetTicks();

@@ -5,6 +5,7 @@
 #include <cglm/cglm.h>
 
 #include "numtypes.h"
+#include "sdl.h"
 
 #define FT_ASSERT(expression) \
     { \
@@ -14,6 +15,11 @@
             exit(1); \
         } \
     }
+
+typedef struct {
+    vec3 pos;
+    vec3 color;
+} vertex_input_cube_t;
 
 typedef struct {
     VkImage image;
@@ -38,6 +44,12 @@ typedef struct {
     VkPipelineLayout cubePipelineLayout;
     VkPipeline cubePipeline;
 
+    struct {
+        vec3 velocity;
+        vec3 position;
+        f32 pitch, yaw;
+    } cam;
+
     VkSemaphore swapchainReadySemaphore;
     VkSemaphore renderingDoneSemaphore;
     VkFence frameFence;
@@ -49,6 +61,7 @@ typedef struct {
 #define LERP_STAR_INVERSE_SPEED 100.0f
 
 void gameInit();
+void gameEvent(SDL_Event* e);
 void gameRender();
 void gameQuit();
 
