@@ -6,7 +6,6 @@
 
 #include "numtypes.h"
 #include "vkFunctions.h"
-#include "sdl.h"
 #include "vkInit.h"
 #include "mathext.h"
 #include "pipeline.h"
@@ -76,7 +75,7 @@ void vkInit() {
 
     loadVulkanInstanceFunctions(vkglobals.instance);
 
-    if (SDL_Vulkan_CreateSurface(window, vkglobals.instance, NULL, &vkglobals.surface) != true) {
+    if (SDL_Vulkan_CreateSurface(vkglobals.window, vkglobals.instance, NULL, &vkglobals.surface) != true) {
         printf("failed to create vulkan surface for sdl window\n");
         exit(1);
     }
@@ -135,14 +134,18 @@ void vkInit() {
             VkPresentModeKHR surfacePresentModes[surfacePresentModeCount];
             vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevices[i], vkglobals.surface, &surfacePresentModeCount, surfacePresentModes);
 
-            u8 foundImmediatePresentMode = 0;
-            for (u32 i = 0; i < surfacePresentModeCount; i++) {
-                if (surfacePresentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-                    foundImmediatePresentMode = 1;
-                    vkglobals.surfacePresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+            if (vkglobals.preferImmediate) {
+                u8 immediatePresentModeSupported = 0;
+                for (u32 i = 0; i < surfacePresentModeCount; i++) {
+                    if (surfacePresentModes[i] == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                        immediatePresentModeSupported = 1;
+                        vkglobals.surfacePresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+                    }
                 }
+                if (!immediatePresentModeSupported) vkglobals.surfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
+            } else {
+                vkglobals.surfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
             }
-            if (!foundImmediatePresentMode) vkglobals.surfacePresentMode = VK_PRESENT_MODE_FIFO_KHR;
 
             u32 surfaceFormatCount;
             vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevices[i], vkglobals.surface, &surfaceFormatCount, NULL);
@@ -222,7 +225,7 @@ void vkInit() {
         u32 w;
         u32 h;
         // width and height normally are positive integers
-        if (SDL_GetWindowSizeInPixels(window, (i32*)&w, (i32*)&h) != true) {
+        if (SDL_GetWindowSizeInPixels(vkglobals.window, (i32*)&w, (i32*)&h) != true) {
             printf("failed to get window size from sdl\n");
             exit(1);
         }
@@ -293,6 +296,8 @@ void vkInit() {
             VK_ASSERT(vkCreateImageView(vkglobals.device, &viewInfo, NULL, &vkglobals.swapchainImageViews[i]), "failed to create image view\n");
         }
     }
+
+    vkglobals.fullscreen = 0;
 }
 
 void vkQuit() {

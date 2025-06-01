@@ -5,7 +5,6 @@
 #include <cglm/cglm.h>
 
 #include "numtypes.h"
-#include "sdl.h"
 
 #define FT_ASSERT(expression) \
     { \
@@ -28,6 +27,9 @@ typedef struct {
 } texture_t;
 
 typedef struct {
+    u8 loopActive;
+    u32 deltaTime;
+
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout uboDescriptorSetLayout;
 

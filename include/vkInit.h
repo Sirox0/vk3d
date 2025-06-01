@@ -2,6 +2,7 @@
 #define VK_INIT_H
 
 #include <vulkan/vulkan.h>
+#include <SDL3/SDL.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +16,10 @@
     }
 
 typedef struct {
+    SDL_Window* window;
+    u8 fullscreen;
+    u8 preferImmediate;
+
     VkInstance instance;
     VkPhysicalDevice physicalDevice;
     VkPhysicalDeviceProperties deviceProperties;

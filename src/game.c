@@ -1,4 +1,5 @@
 #include <vulkan/vulkan.h>
+#include <SDL3/SDL.h>
 #include <cglm/cglm.h>
 
 #include <stdio.h>
@@ -9,7 +10,6 @@
 #include "numtypes.h"
 #include "vkFunctions.h"
 #include "vkInit.h"
-#include "sdl.h"
 #include "pipeline.h"
 #include "game.h"
 #include "util.h"
@@ -320,6 +320,9 @@ void gameInit() {
         VK_ASSERT(vkFlushMappedMemoryRanges(vkglobals.device, 1, &memoryRange), "failed to flush device memory\n");
     }
 
+    gameglobals.loopActive = 1;
+    gameglobals.deltaTime = 0;
+
     garbageWaitAndDestroy(GARBAGE_CMD_BUFFER_NUM, garbageCmdBuffers, GARBAGE_BUFFER_NUM, garbageBuffers, GARBAGE_BUFFER_MEMORY_NUM, garbageBuffersMem, GARBAGE_FENCE_NUM, garbageFences);
 }
 
@@ -354,7 +357,7 @@ void updateCubeUbo() {
         mat4 rot;
         glm_quat_mat4(y, rot);
         vec3 vel;
-        glm_mat4_mulv3(rot, (vec3){gameglobals.cam.velocity[0] * deltaTime, gameglobals.cam.velocity[1] * deltaTime, gameglobals.cam.velocity[2] * deltaTime}, 0.0f, vel);
+        glm_mat4_mulv3(rot, (vec3){gameglobals.cam.velocity[0] * gameglobals.deltaTime, gameglobals.cam.velocity[1] * gameglobals.deltaTime, gameglobals.cam.velocity[2] * gameglobals.deltaTime}, 0.0f, vel);
         glm_vec3_add(gameglobals.cam.position, vel, gameglobals.cam.position);
     }
 
@@ -363,7 +366,7 @@ void updateCubeUbo() {
         glm_translate(gameglobals.cubeUniformBufferMemoryRaw + sizeof(mat4), (vec3){-gameglobals.cam.position[0], -gameglobals.cam.position[1], -gameglobals.cam.position[2]});
     }
 
-    glm_rotate(gameglobals.cubeUniformBufferMemoryRaw, glm_rad(90.0f) * deltaTime / 1000.0f, (vec3){0.0f, -1.0f, 0.0f});
+    glm_rotate(gameglobals.cubeUniformBufferMemoryRaw, glm_rad(90.0f) * gameglobals.deltaTime / 1000.0f, (vec3){0.0f, -1.0f, 0.0f});
 
     VkDeviceSize alignedSize = sizeof(mat4) * 2 + getAlignCooficient(sizeof(mat4) * 2, vkglobals.deviceProperties.limits.nonCoherentAtomSize);
     VkMappedMemoryRange memoryRange = {};
