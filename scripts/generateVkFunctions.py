@@ -86,9 +86,9 @@ cfile.write("#endif\n\n")
 
 cfile.write("void loadVulkanLoaderFunctions() {\n\t#ifdef VK_NO_PROTOTYPES\n")
 i = len(loaderFuncs) - 1
-cfile.write("\tvkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)SDL_Vulkan_GetVkGetInstanceProcAddr();\n\tif (vkGetInstanceProcAddr == NULL) {\n\t\tprintf(\"failed to load vkGetInstanceProcAddr\\n\");\n\t\texit(1);\n\t}\n")
+cfile.write("\tvkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)SDL_Vulkan_GetVkGetInstanceProcAddr();\n\tif (vkGetInstanceProcAddr == VK_NULL_HANDLE) {\n\t\tprintf(\"failed to load vkGetInstanceProcAddr\\n\");\n\t\texit(1);\n\t}\n")
 while i >= 0:
-    cfile.write('\t' + loaderFuncs[i] + " = (PFN_" + loaderFuncs[i] + ")vkGetInstanceProcAddr(NULL, \"" + loaderFuncs[i] + "\");\n")
+    cfile.write('\t' + loaderFuncs[i] + " = (PFN_" + loaderFuncs[i] + ")vkGetInstanceProcAddr(VK_NULL_HANDLE, \"" + loaderFuncs[i] + "\");\n")
     i -= 1
 cfile.write("\t#endif\n}\n\n")
 

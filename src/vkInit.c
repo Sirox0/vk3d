@@ -41,7 +41,7 @@ VkShaderModule createShaderModuleFromFile(char* path) {
     moduleInfo.codeSize = fsize;
     moduleInfo.pCode = (u32*)shaderCode;
 
-    VK_ASSERT(vkCreateShaderModule(vkglobals.device, &moduleInfo, NULL, &module), "failed to create shader module\n");
+    VK_ASSERT(vkCreateShaderModule(vkglobals.device, &moduleInfo, VK_NULL_HANDLE, &module), "failed to create shader module\n");
     free(shaderCode);
     return module;
 }
@@ -77,28 +77,28 @@ void vkInit() {
         instanceInfo.enabledExtensionCount = sdlInstanceExtensionCount + INSTANCE_EXTENSION_COUNT;
         instanceInfo.ppEnabledExtensionNames = (const char**)finalInstanceExtensions;
 
-        VK_ASSERT(vkCreateInstance(&instanceInfo, NULL, &vkglobals.instance), "failed to create vulkan instance\n");
+        VK_ASSERT(vkCreateInstance(&instanceInfo, VK_NULL_HANDLE, &vkglobals.instance), "failed to create vulkan instance\n");
     }
 
     loadVulkanInstanceFunctions(vkglobals.instance);
 
-    if (SDL_Vulkan_CreateSurface(vkglobals.window, vkglobals.instance, NULL, &vkglobals.surface) != true) {
+    if (SDL_Vulkan_CreateSurface(vkglobals.window, vkglobals.instance, VK_NULL_HANDLE, &vkglobals.surface) != true) {
         printf("failed to create vulkan surface for sdl window\n");
         exit(1);
     }
 
     {
         u32 physicalDeviceCount;
-        vkEnumeratePhysicalDevices(vkglobals.instance, &physicalDeviceCount, NULL);
+        vkEnumeratePhysicalDevices(vkglobals.instance, &physicalDeviceCount, VK_NULL_HANDLE);
         VkPhysicalDevice physicalDevices[physicalDeviceCount];
         vkEnumeratePhysicalDevices(vkglobals.instance, &physicalDeviceCount, physicalDevices);
 
         u8 foundDevice = 0;
         for (u32 i = 0; i < physicalDeviceCount; i++) {
             u32 extensionPropertyCount;
-            vkEnumerateDeviceExtensionProperties(physicalDevices[i], NULL, &extensionPropertyCount, NULL);
+            vkEnumerateDeviceExtensionProperties(physicalDevices[i], VK_NULL_HANDLE, &extensionPropertyCount, VK_NULL_HANDLE);
             VkExtensionProperties extensionProperties[extensionPropertyCount];
-            vkEnumerateDeviceExtensionProperties(physicalDevices[i], NULL, &extensionPropertyCount, extensionProperties);
+            vkEnumerateDeviceExtensionProperties(physicalDevices[i], VK_NULL_HANDLE, &extensionPropertyCount, extensionProperties);
 
             u8 foundExts;
             for (u32 requiredExt = 0; requiredExt < DEVICE_EXTENSION_COUNT; requiredExt++) {
@@ -117,7 +117,7 @@ void vkInit() {
             if (!foundExts) continue;
 
             u32 queueFamilyPropertyCount;
-            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], &queueFamilyPropertyCount, NULL);
+            vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], &queueFamilyPropertyCount, VK_NULL_HANDLE);
             VkQueueFamilyProperties queueFamilyProperties[queueFamilyPropertyCount];
             vkGetPhysicalDeviceQueueFamilyProperties(physicalDevices[i], &queueFamilyPropertyCount, queueFamilyProperties);
 
@@ -137,7 +137,7 @@ void vkInit() {
             if (!foundQueueFamily) continue;
 
             u32 surfacePresentModeCount;
-            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevices[i], vkglobals.surface, &surfacePresentModeCount, NULL);
+            vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevices[i], vkglobals.surface, &surfacePresentModeCount, VK_NULL_HANDLE);
             VkPresentModeKHR surfacePresentModes[surfacePresentModeCount];
             vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevices[i], vkglobals.surface, &surfacePresentModeCount, surfacePresentModes);
 
@@ -155,7 +155,7 @@ void vkInit() {
             }
 
             u32 surfaceFormatCount;
-            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevices[i], vkglobals.surface, &surfaceFormatCount, NULL);
+            vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevices[i], vkglobals.surface, &surfaceFormatCount, VK_NULL_HANDLE);
             if (surfaceFormatCount == 0) continue;
             VkSurfaceFormatKHR surfaceFormats[surfaceFormatCount];
             vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevices[i], vkglobals.surface, &surfaceFormatCount, surfaceFormats);
@@ -203,7 +203,7 @@ void vkInit() {
         deviceInfo.pQueueCreateInfos = &deviceQueueInfo;
         deviceInfo.pNext = &deviceFeatures;
 
-        VK_ASSERT(vkCreateDevice(vkglobals.physicalDevice, &deviceInfo, NULL, &vkglobals.device), "failed to create vulkan logical device\n");
+        VK_ASSERT(vkCreateDevice(vkglobals.physicalDevice, &deviceInfo, VK_NULL_HANDLE, &vkglobals.device), "failed to create vulkan logical device\n");
     }
 
     loadVulkanDeviceFunctions(vkglobals.device);
@@ -216,11 +216,11 @@ void vkInit() {
         commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         commandPoolInfo.queueFamilyIndex = vkglobals.queueFamilyIndex;
 
-        VK_ASSERT(vkCreateCommandPool(vkglobals.device, &commandPoolInfo, NULL, &vkglobals.commandPool), "failed to create command pool\n");
+        VK_ASSERT(vkCreateCommandPool(vkglobals.device, &commandPoolInfo, VK_NULL_HANDLE, &vkglobals.commandPool), "failed to create command pool\n");
 
         commandPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
 
-        VK_ASSERT(vkCreateCommandPool(vkglobals.device, &commandPoolInfo, NULL, &vkglobals.shortCommandPool), "failed to create command pool\n");
+        VK_ASSERT(vkCreateCommandPool(vkglobals.device, &commandPoolInfo, VK_NULL_HANDLE, &vkglobals.shortCommandPool), "failed to create command pool\n");
     }
 
     {
@@ -281,10 +281,10 @@ void vkInit() {
         swapchainInfo.preTransform = vkglobals.surfaceCapabilities.currentTransform;
         swapchainInfo.surface = vkglobals.surface;
 
-        VK_ASSERT(vkCreateSwapchainKHR(vkglobals.device, &swapchainInfo, NULL, &vkglobals.swapchain), "failed to create swapchain\n");
+        VK_ASSERT(vkCreateSwapchainKHR(vkglobals.device, &swapchainInfo, VK_NULL_HANDLE, &vkglobals.swapchain), "failed to create swapchain\n");
     }
 
-    vkGetSwapchainImagesKHR(vkglobals.device, vkglobals.swapchain, &vkglobals.swapchainImageCount, NULL);
+    vkGetSwapchainImagesKHR(vkglobals.device, vkglobals.swapchain, &vkglobals.swapchainImageCount, VK_NULL_HANDLE);
 
     {
         void* buf = malloc(sizeof(VkImage) * vkglobals.swapchainImageCount + sizeof(VkImageView) * vkglobals.swapchainImageCount);
@@ -306,20 +306,20 @@ void vkInit() {
             viewInfo.subresourceRange.layerCount = 1;
             viewInfo.subresourceRange.baseArrayLayer = 0;
 
-            VK_ASSERT(vkCreateImageView(vkglobals.device, &viewInfo, NULL, &vkglobals.swapchainImageViews[i]), "failed to create image view\n");
+            VK_ASSERT(vkCreateImageView(vkglobals.device, &viewInfo, VK_NULL_HANDLE, &vkglobals.swapchainImageViews[i]), "failed to create image view\n");
         }
     }
 }
 
 void vkQuit() {
     for (u32 i = 0; i < vkglobals.swapchainImageCount; i++) {
-        vkDestroyImageView(vkglobals.device, vkglobals.swapchainImageViews[i], NULL);
+        vkDestroyImageView(vkglobals.device, vkglobals.swapchainImageViews[i], VK_NULL_HANDLE);
     }
     free(vkglobals.swapchainImageViews);
-    vkDestroySwapchainKHR(vkglobals.device, vkglobals.swapchain, NULL);
-    vkDestroyCommandPool(vkglobals.device, vkglobals.shortCommandPool, NULL);
-    vkDestroyCommandPool(vkglobals.device, vkglobals.commandPool, NULL);
-    vkDestroyDevice(vkglobals.device, NULL);
-    SDL_Vulkan_DestroySurface(vkglobals.instance, vkglobals.surface, NULL);
-    vkDestroyInstance(vkglobals.instance, NULL);
+    vkDestroySwapchainKHR(vkglobals.device, vkglobals.swapchain, VK_NULL_HANDLE);
+    vkDestroyCommandPool(vkglobals.device, vkglobals.shortCommandPool, VK_NULL_HANDLE);
+    vkDestroyCommandPool(vkglobals.device, vkglobals.commandPool, VK_NULL_HANDLE);
+    vkDestroyDevice(vkglobals.device, VK_NULL_HANDLE);
+    SDL_Vulkan_DestroySurface(vkglobals.instance, vkglobals.surface, VK_NULL_HANDLE);
+    vkDestroyInstance(vkglobals.instance, VK_NULL_HANDLE);
 }

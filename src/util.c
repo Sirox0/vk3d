@@ -25,7 +25,7 @@ void copyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer buffer, VkImage image
     imageBarrier.oldLayout = oldLayout;
     imageBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
-    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, NULL, 0, NULL, 1, &imageBarrier);
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &imageBarrier);
 
     VkBufferImageCopy copyInfo = {};
     copyInfo.imageExtent = (VkExtent3D){w, h, 1};
@@ -41,7 +41,7 @@ void copyBufferToImage(VkCommandBuffer cmdBuffer, VkBuffer buffer, VkImage image
     imageBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     imageBarrier.newLayout = newLayout;
 
-    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, NULL, 0, NULL, 1, &imageBarrier);
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &imageBarrier);
 }
 
 void createBuffer(VkBuffer* pBuffer, VkBufferUsageFlags usage, VkDeviceSize size) {
@@ -51,7 +51,7 @@ void createBuffer(VkBuffer* pBuffer, VkBufferUsageFlags usage, VkDeviceSize size
     bufferInfo.usage = usage;
     bufferInfo.size = size;
 
-    VK_ASSERT(vkCreateBuffer(vkglobals.device, &bufferInfo, NULL, pBuffer), "failed to create buffer\n");
+    VK_ASSERT(vkCreateBuffer(vkglobals.device, &bufferInfo, VK_NULL_HANDLE, pBuffer), "failed to create buffer\n");
 }
 
 void allocateMemory(VkDeviceMemory* pMem, VkDeviceSize size, u32 memoryTypeIndex) {
@@ -60,7 +60,7 @@ void allocateMemory(VkDeviceMemory* pMem, VkDeviceSize size, u32 memoryTypeIndex
     allocInfo.allocationSize = size;
     allocInfo.memoryTypeIndex = memoryTypeIndex;
 
-    VK_ASSERT(vkAllocateMemory(vkglobals.device, &allocInfo, NULL, pMem), "failed to allocate memory\n");
+    VK_ASSERT(vkAllocateMemory(vkglobals.device, &allocInfo, VK_NULL_HANDLE, pMem), "failed to allocate memory\n");
 }
 
 void beginCreateTexture(texture_t* pTexture, i32 w, i32 h, VkFormat textureFormat) {
@@ -77,7 +77,7 @@ void beginCreateTexture(texture_t* pTexture, i32 w, i32 h, VkFormat textureForma
     imageInfo.arrayLayers = 1;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-    VK_ASSERT(vkCreateImage(vkglobals.device, &imageInfo, NULL, &pTexture->image), "failed to create image\n");
+    VK_ASSERT(vkCreateImage(vkglobals.device, &imageInfo, VK_NULL_HANDLE, &pTexture->image), "failed to create image\n");
 }
 
 void endCreateTexture(texture_t* pTexture, VkFormat textureFormat) {
@@ -93,7 +93,7 @@ void endCreateTexture(texture_t* pTexture, VkFormat textureFormat) {
     viewInfo.subresourceRange.baseMipLevel = 0;
     viewInfo.subresourceRange.levelCount = 1;
 
-    VK_ASSERT(vkCreateImageView(vkglobals.device, &viewInfo, NULL, &pTexture->view), "failed to create image view\n");
+    VK_ASSERT(vkCreateImageView(vkglobals.device, &viewInfo, VK_NULL_HANDLE, &pTexture->view), "failed to create image view\n");
 
     VkSamplerCreateInfo samplerInfo = {};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -110,7 +110,7 @@ void endCreateTexture(texture_t* pTexture, VkFormat textureFormat) {
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
 
-    VK_ASSERT(vkCreateSampler(vkglobals.device, &samplerInfo, NULL, &pTexture->sampler), "failed to create sampler\n");
+    VK_ASSERT(vkCreateSampler(vkglobals.device, &samplerInfo, VK_NULL_HANDLE, &pTexture->sampler), "failed to create sampler\n");
 }
 
 VkDeviceSize getAlignCooficient(VkDeviceSize size, u32 alignment) {

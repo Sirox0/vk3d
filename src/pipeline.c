@@ -6,35 +6,35 @@
 #include "pipeline.h"
 
 void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
-    pInfo->pNext = NULL;
+    pInfo->pNext = VK_NULL_HANDLE;
     pInfo->flags = 0;
     pInfo->stageCount = 0; // must be set by user
     for (u32 i = 0; i < 5; i++) {
-        pInfo->stages[i].pNext = NULL;
+        pInfo->stages[i].pNext = VK_NULL_HANDLE;
         pInfo->stages[i].flags = 0;
         pInfo->stages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         pInfo->stages[i].stage = VK_SHADER_STAGE_ALL; // must be set by user
         pInfo->stages[i].pName = "main";
-        pInfo->stages[i].module = NULL; // must be set by user
-        pInfo->stages[i].pSpecializationInfo = NULL;
+        pInfo->stages[i].module = VK_NULL_HANDLE; // must be set by user
+        pInfo->stages[i].pSpecializationInfo = VK_NULL_HANDLE;
     }
 
     pInfo->vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    pInfo->vertexInputState.pNext = NULL;
+    pInfo->vertexInputState.pNext = VK_NULL_HANDLE;
     pInfo->vertexInputState.flags = 0;
     pInfo->vertexInputState.vertexAttributeDescriptionCount = 0;
-    pInfo->vertexInputState.pVertexAttributeDescriptions = NULL;
+    pInfo->vertexInputState.pVertexAttributeDescriptions = VK_NULL_HANDLE;
     pInfo->vertexInputState.vertexBindingDescriptionCount = 0;
-    pInfo->vertexInputState.pVertexBindingDescriptions = NULL;
+    pInfo->vertexInputState.pVertexBindingDescriptions = VK_NULL_HANDLE;
 
     pInfo->inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    pInfo->inputAssemblyState.pNext = NULL;
+    pInfo->inputAssemblyState.pNext = VK_NULL_HANDLE;
     pInfo->inputAssemblyState.flags = 0;
     pInfo->inputAssemblyState.primitiveRestartEnable = VK_FALSE;
     pInfo->inputAssemblyState.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
     pInfo->tessellationState.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
-    pInfo->tessellationState.pNext = NULL;
+    pInfo->tessellationState.pNext = VK_NULL_HANDLE;
     pInfo->tessellationState.flags = 0;
     pInfo->tessellationState.patchControlPoints = 4;
 
@@ -49,7 +49,7 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->scissor.offset = (VkOffset2D){0, 0};
 
     pInfo->viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    pInfo->viewportState.pNext = NULL;
+    pInfo->viewportState.pNext = VK_NULL_HANDLE;
     pInfo->viewportState.flags = 0;
     pInfo->viewportState.scissorCount = 1;
     pInfo->viewportState.pScissors = &pInfo->scissor;
@@ -57,7 +57,7 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->viewportState.pViewports = &pInfo->viewport;
 
     pInfo->rasterizationState.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    pInfo->rasterizationState.pNext = NULL;
+    pInfo->rasterizationState.pNext = VK_NULL_HANDLE;
     pInfo->rasterizationState.flags = 0;
     pInfo->rasterizationState.depthClampEnable = VK_FALSE;
     pInfo->rasterizationState.rasterizerDiscardEnable = VK_FALSE;
@@ -68,17 +68,17 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->rasterizationState.lineWidth = 1.0f;
 
     pInfo->multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    pInfo->multisampleState.pNext = NULL;
+    pInfo->multisampleState.pNext = VK_NULL_HANDLE;
     pInfo->multisampleState.flags = 0;
     pInfo->multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     pInfo->multisampleState.sampleShadingEnable = VK_FALSE;
     pInfo->multisampleState.minSampleShading = 1.0f;
-    pInfo->multisampleState.pSampleMask = NULL;
+    pInfo->multisampleState.pSampleMask = VK_NULL_HANDLE;
     pInfo->multisampleState.alphaToCoverageEnable = VK_FALSE;
     pInfo->multisampleState.alphaToOneEnable = VK_FALSE;
 
     pInfo->depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    pInfo->depthStencilState.pNext = NULL;
+    pInfo->depthStencilState.pNext = VK_NULL_HANDLE;
     pInfo->depthStencilState.flags = 0;
     pInfo->depthStencilState.depthTestEnable = VK_FALSE;
     pInfo->depthStencilState.depthWriteEnable = VK_FALSE;
@@ -98,7 +98,7 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
     pInfo->colorBlendState.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    pInfo->colorBlendState.pNext = NULL;
+    pInfo->colorBlendState.pNext = VK_NULL_HANDLE;
     pInfo->colorBlendState.flags = 0;
     pInfo->colorBlendState.logicOpEnable = VK_FALSE;
     pInfo->colorBlendState.logicOp = VK_LOGIC_OP_COPY;
@@ -110,10 +110,10 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->colorBlendState.blendConstants[3] = 0.5f;
 
     pInfo->dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    pInfo->dynamicState.pNext = NULL;
+    pInfo->dynamicState.pNext = VK_NULL_HANDLE;
     pInfo->dynamicState.flags = 0;
     pInfo->dynamicState.dynamicStateCount = 0;
-    pInfo->dynamicState.pDynamicStates = NULL;
+    pInfo->dynamicState.pDynamicStates = VK_NULL_HANDLE;
 
     pInfo->renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
     pInfo->renderingInfo.viewMask = 0;
@@ -121,23 +121,23 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->renderingInfo.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
     pInfo->renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
-    pInfo->layout = NULL; // must be set by user
-    pInfo->basePipelineHandle = NULL;
+    pInfo->layout = VK_NULL_HANDLE; // must be set by user
+    pInfo->basePipelineHandle = VK_NULL_HANDLE;
     pInfo->basePipelineIndex = 0;
 }
 
 void pipelineFillDefaultComputePipeline(compute_pipeline_info_t* pInfo) {
-    pInfo->pNext = NULL;
+    pInfo->pNext = VK_NULL_HANDLE;
     pInfo->flags = 0;
-    pInfo->stage.pNext = NULL;
+    pInfo->stage.pNext = VK_NULL_HANDLE;
     pInfo->stage.flags = 0;
     pInfo->stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     pInfo->stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
     pInfo->stage.pName = "main";
-    pInfo->stage.module = NULL; // must be set by user
-    pInfo->stage.pSpecializationInfo = NULL;
-    pInfo->layout = NULL; // must be set by user
-    pInfo->basePipelineHandle = NULL;
+    pInfo->stage.module = VK_NULL_HANDLE; // must be set by user
+    pInfo->stage.pSpecializationInfo = VK_NULL_HANDLE;
+    pInfo->layout = VK_NULL_HANDLE; // must be set by user
+    pInfo->basePipelineHandle = VK_NULL_HANDLE;
     pInfo->basePipelineIndex = 0;
 }
 
@@ -154,7 +154,7 @@ void pipelineCreateComputePipelines(VkPipelineCache cache, u32 infoCount, comput
         createInfos[i].basePipelineIndex = pInfos[i].basePipelineIndex;
     }
 
-    VK_ASSERT(vkCreateComputePipelines(vkglobals.device, cache, infoCount, createInfos, NULL, pPipelines), "failed to create compute pipelines\n");
+    VK_ASSERT(vkCreateComputePipelines(vkglobals.device, cache, infoCount, createInfos, VK_NULL_HANDLE, pPipelines), "failed to create compute pipelines\n");
 }
 
 void pipelineCreateGraphicsPipelines(VkPipelineCache cache, u32 infoCount, graphics_pipeline_info_t* pInfos, VkPipeline* pPipelines) {
@@ -184,5 +184,5 @@ void pipelineCreateGraphicsPipelines(VkPipelineCache cache, u32 infoCount, graph
         createInfos[i].basePipelineIndex = pInfos[i].basePipelineIndex;
     }
 
-    VK_ASSERT(vkCreateGraphicsPipelines(vkglobals.device, cache, infoCount, createInfos, NULL, pPipelines), "failed to create graphics pipelines\n");
+    VK_ASSERT(vkCreateGraphicsPipelines(vkglobals.device, cache, infoCount, createInfos, VK_NULL_HANDLE, pPipelines), "failed to create graphics pipelines\n");
 }

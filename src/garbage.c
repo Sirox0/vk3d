@@ -24,20 +24,20 @@ void garbageCreate(u32 cmdBufferCount, VkCommandBuffer* cmdBuffers, u32 fenceCou
     garbageFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
     for (u32 i = 0; i < fenceCount; i++) {
-        VK_ASSERT(vkCreateFence(vkglobals.device, &garbageFenceInfo, NULL, &fences[i]), "failed to create fence\n");
+        VK_ASSERT(vkCreateFence(vkglobals.device, &garbageFenceInfo, VK_NULL_HANDLE, &fences[i]), "failed to create fence\n");
     }
 }
 
 void garbageWaitAndDestroy(u32 cmdBufferCount, VkCommandBuffer* cmdBuffers, u32 bufferCount, VkBuffer* buffers, u32 bufferMemCount, VkDeviceMemory* buffersMem, u32 fenceCount, VkFence* fences) {
     if (fenceCount > 0) VK_ASSERT(vkWaitForFences(vkglobals.device, fenceCount, fences, VK_TRUE, 0xFFFFFFFFFFFFFFFF), "failed to wait for fences\n");
     for (u32 i = 0; i < fenceCount; i++) {
-        vkDestroyFence(vkglobals.device, fences[i], NULL);
+        vkDestroyFence(vkglobals.device, fences[i], VK_NULL_HANDLE);
     }
     vkFreeCommandBuffers(vkglobals.device, vkglobals.shortCommandPool, cmdBufferCount, cmdBuffers);
     for (u32 i = 0; i < bufferCount; i++) {
-        vkDestroyBuffer(vkglobals.device, buffers[i], NULL);
+        vkDestroyBuffer(vkglobals.device, buffers[i], VK_NULL_HANDLE);
     }
     for (u32 i = 0; i < bufferMemCount; i++) {
-        vkFreeMemory(vkglobals.device, buffersMem[i], NULL);
+        vkFreeMemory(vkglobals.device, buffersMem[i], VK_NULL_HANDLE);
     }
 }

@@ -94,11 +94,11 @@ PFN_vkDestroyDevice vkDestroyDevice;
 void loadVulkanLoaderFunctions() {
 	#ifdef VK_NO_PROTOTYPES
 	vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)SDL_Vulkan_GetVkGetInstanceProcAddr();
-	if (vkGetInstanceProcAddr == NULL) {
+	if (vkGetInstanceProcAddr == VK_NULL_HANDLE) {
 		printf("failed to load vkGetInstanceProcAddr\n");
 		exit(1);
 	}
-	vkCreateInstance = (PFN_vkCreateInstance)vkGetInstanceProcAddr(NULL, "vkCreateInstance");
+	vkCreateInstance = (PFN_vkCreateInstance)vkGetInstanceProcAddr(VK_NULL_HANDLE, "vkCreateInstance");
 	#endif
 }
 

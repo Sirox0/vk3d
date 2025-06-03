@@ -154,7 +154,7 @@ void gameInit() {
         poolInfo.pPoolSizes = &uboPoolSize;
         poolInfo.maxSets = 1;
 
-        VK_ASSERT(vkCreateDescriptorPool(vkglobals.device, &poolInfo, NULL, &gameglobals.descriptorPool), "failed to create descriptor pool\n");
+        VK_ASSERT(vkCreateDescriptorPool(vkglobals.device, &poolInfo, VK_NULL_HANDLE, &gameglobals.descriptorPool), "failed to create descriptor pool\n");
     }
 
     {
@@ -169,7 +169,7 @@ void gameInit() {
         descriptorSetLayoutInfo.bindingCount = 1;
         descriptorSetLayoutInfo.pBindings = &uboBinding;
 
-        VK_ASSERT(vkCreateDescriptorSetLayout(vkglobals.device, &descriptorSetLayoutInfo, NULL, &gameglobals.uboDescriptorSetLayout), "failed to create descriptor set layout\n");
+        VK_ASSERT(vkCreateDescriptorSetLayout(vkglobals.device, &descriptorSetLayoutInfo, VK_NULL_HANDLE, &gameglobals.uboDescriptorSetLayout), "failed to create descriptor set layout\n");
     }
 
     {
@@ -195,7 +195,7 @@ void gameInit() {
         starTextureDescriptorWrite.dstSet = gameglobals.cubeUboDescriptorSet;
         starTextureDescriptorWrite.pBufferInfo = &descriptorBufferInfo;
 
-        vkUpdateDescriptorSets(vkglobals.device, 1, &starTextureDescriptorWrite, 0, NULL);
+        vkUpdateDescriptorSets(vkglobals.device, 1, &starTextureDescriptorWrite, 0, VK_NULL_HANDLE);
     }
 
     {
@@ -204,7 +204,7 @@ void gameInit() {
         pipelineLayoutInfo.setLayoutCount = 1;
         pipelineLayoutInfo.pSetLayouts = &gameglobals.uboDescriptorSetLayout;
 
-        VK_ASSERT(vkCreatePipelineLayout(vkglobals.device, &pipelineLayoutInfo, NULL, &gameglobals.cubePipelineLayout), "failed to create pipeline layout\n");
+        VK_ASSERT(vkCreatePipelineLayout(vkglobals.device, &pipelineLayoutInfo, VK_NULL_HANDLE, &gameglobals.cubePipelineLayout), "failed to create pipeline layout\n");
 
         graphics_pipeline_info_t pipelineInfo = {};
         pipelineFillDefaultGraphicsPipeline(&pipelineInfo);
@@ -237,24 +237,24 @@ void gameInit() {
         pipelineInfo.vertexInputState.vertexBindingDescriptionCount = 1;
         pipelineInfo.vertexInputState.pVertexBindingDescriptions = &bindingDesc;
 
-        pipelineCreateGraphicsPipelines(NULL, 1, &pipelineInfo, &gameglobals.cubePipeline);
+        pipelineCreateGraphicsPipelines(VK_NULL_HANDLE, 1, &pipelineInfo, &gameglobals.cubePipeline);
 
-        vkDestroyShaderModule(vkglobals.device, pipelineInfo.stages[0].module, NULL);
-        vkDestroyShaderModule(vkglobals.device, pipelineInfo.stages[1].module, NULL);
+        vkDestroyShaderModule(vkglobals.device, pipelineInfo.stages[0].module, VK_NULL_HANDLE);
+        vkDestroyShaderModule(vkglobals.device, pipelineInfo.stages[1].module, VK_NULL_HANDLE);
     }
 
     {
         VkSemaphoreCreateInfo semaphoreInfo = {};
         semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-        VK_ASSERT(vkCreateSemaphore(vkglobals.device, &semaphoreInfo, NULL, &gameglobals.swapchainReadySemaphore), "failed to create semaphore\n");
-        VK_ASSERT(vkCreateSemaphore(vkglobals.device, &semaphoreInfo, NULL, &gameglobals.renderingDoneSemaphore), "failed to create semaphore\n");
+        VK_ASSERT(vkCreateSemaphore(vkglobals.device, &semaphoreInfo, VK_NULL_HANDLE, &gameglobals.swapchainReadySemaphore), "failed to create semaphore\n");
+        VK_ASSERT(vkCreateSemaphore(vkglobals.device, &semaphoreInfo, VK_NULL_HANDLE, &gameglobals.renderingDoneSemaphore), "failed to create semaphore\n");
 
         VkFenceCreateInfo fenceInfo = {};
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        VK_ASSERT(vkCreateFence(vkglobals.device, &fenceInfo, NULL, &gameglobals.frameFence), "failed to create fence\n");
+        VK_ASSERT(vkCreateFence(vkglobals.device, &fenceInfo, VK_NULL_HANDLE, &gameglobals.frameFence), "failed to create fence\n");
     }
 
     glm_mat4_identity(gameglobals.cubeUniformBufferMemoryRaw);
@@ -337,7 +337,7 @@ void gameRender() {
     VK_ASSERT(vkResetFences(vkglobals.device, 1, &gameglobals.frameFence), "failed to reset fences\n");
 
     u32 imageIndex;
-    VK_ASSERT(vkAcquireNextImageKHR(vkglobals.device, vkglobals.swapchain, 0xFFFFFFFFFFFFFFFF, gameglobals.swapchainReadySemaphore, NULL, &imageIndex), "failed tp acquire swapchain image\n");
+    VK_ASSERT(vkAcquireNextImageKHR(vkglobals.device, vkglobals.swapchain, 0xFFFFFFFFFFFFFFFF, gameglobals.swapchainReadySemaphore, VK_NULL_HANDLE, &imageIndex), "failed tp acquire swapchain image\n");
 
     {
         VkCommandBufferBeginInfo cmdBeginInfo = {};
@@ -362,7 +362,7 @@ void gameRender() {
             imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             imageBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            vkCmdPipelineBarrier(vkglobals.cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, NULL, 0, NULL, 1, &imageBarrier);
+            vkCmdPipelineBarrier(vkglobals.cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &imageBarrier);
         }
 
         VkRenderingAttachmentInfoKHR swapchainImageAttachment = {};
@@ -380,8 +380,8 @@ void gameRender() {
         renderingInfo.layerCount = 1;
         renderingInfo.colorAttachmentCount = 1;
         renderingInfo.pColorAttachments = &swapchainImageAttachment;
-        renderingInfo.pDepthAttachment = NULL;
-        renderingInfo.pStencilAttachment = NULL;
+        renderingInfo.pDepthAttachment = VK_NULL_HANDLE;
+        renderingInfo.pStencilAttachment = VK_NULL_HANDLE;
 
         vkCmdBeginRenderingKHR(vkglobals.cmdBuffer, &renderingInfo);
 
@@ -389,7 +389,7 @@ void gameRender() {
         vkCmdBindPipeline(vkglobals.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gameglobals.cubePipeline);
         vkCmdBindVertexBuffers(vkglobals.cmdBuffer, 0, 1, &gameglobals.cubeVertexBuffer, vertexBufferOffsets);
         vkCmdBindIndexBuffer(vkglobals.cmdBuffer, gameglobals.cubeIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
-        vkCmdBindDescriptorSets(vkglobals.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gameglobals.cubePipelineLayout, 0, 1, &gameglobals.cubeUboDescriptorSet, 0, NULL);
+        vkCmdBindDescriptorSets(vkglobals.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gameglobals.cubePipelineLayout, 0, 1, &gameglobals.cubeUboDescriptorSet, 0, VK_NULL_HANDLE);
 
         vkCmdDrawIndexed(vkglobals.cmdBuffer, 36, 1, 0, 0, 0);
 
@@ -411,7 +411,7 @@ void gameRender() {
             imageBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             imageBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-            vkCmdPipelineBarrier(vkglobals.cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, NULL, 0, NULL, 1, &imageBarrier);
+            vkCmdPipelineBarrier(vkglobals.cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 1, &imageBarrier);
         }
 
         VK_ASSERT(vkEndCommandBuffer(vkglobals.cmdBuffer), "failed to end command buffer\n");
@@ -443,17 +443,17 @@ void gameRender() {
 }
 
 void gameQuit() {
-    vkDestroyFence(vkglobals.device, gameglobals.frameFence, NULL);
-    vkDestroySemaphore(vkglobals.device, gameglobals.renderingDoneSemaphore, NULL);
-    vkDestroySemaphore(vkglobals.device, gameglobals.swapchainReadySemaphore, NULL);
-    vkDestroyPipeline(vkglobals.device, gameglobals.cubePipeline, NULL);
-    vkDestroyPipelineLayout(vkglobals.device, gameglobals.cubePipelineLayout, NULL);
+    vkDestroyFence(vkglobals.device, gameglobals.frameFence, VK_NULL_HANDLE);
+    vkDestroySemaphore(vkglobals.device, gameglobals.renderingDoneSemaphore, VK_NULL_HANDLE);
+    vkDestroySemaphore(vkglobals.device, gameglobals.swapchainReadySemaphore, VK_NULL_HANDLE);
+    vkDestroyPipeline(vkglobals.device, gameglobals.cubePipeline, VK_NULL_HANDLE);
+    vkDestroyPipelineLayout(vkglobals.device, gameglobals.cubePipelineLayout, VK_NULL_HANDLE);
     vkUnmapMemory(vkglobals.device, gameglobals.cubeUniformBufferMemory);
-    vkDestroyBuffer(vkglobals.device, gameglobals.cubeUniformBuffer, NULL);
-    vkFreeMemory(vkglobals.device, gameglobals.cubeUniformBufferMemory, NULL);
-    vkDestroyBuffer(vkglobals.device, gameglobals.cubeIndexBuffer, NULL);
-    vkDestroyBuffer(vkglobals.device, gameglobals.cubeVertexBuffer, NULL);
-    vkFreeMemory(vkglobals.device, gameglobals.cubeVertexIndexBuffersMemory, NULL);
-    vkDestroyDescriptorSetLayout(vkglobals.device, gameglobals.uboDescriptorSetLayout, NULL);
-    vkDestroyDescriptorPool(vkglobals.device, gameglobals.descriptorPool, NULL);
+    vkDestroyBuffer(vkglobals.device, gameglobals.cubeUniformBuffer, VK_NULL_HANDLE);
+    vkFreeMemory(vkglobals.device, gameglobals.cubeUniformBufferMemory, VK_NULL_HANDLE);
+    vkDestroyBuffer(vkglobals.device, gameglobals.cubeIndexBuffer, VK_NULL_HANDLE);
+    vkDestroyBuffer(vkglobals.device, gameglobals.cubeVertexBuffer, VK_NULL_HANDLE);
+    vkFreeMemory(vkglobals.device, gameglobals.cubeVertexIndexBuffersMemory, VK_NULL_HANDLE);
+    vkDestroyDescriptorSetLayout(vkglobals.device, gameglobals.uboDescriptorSetLayout, VK_NULL_HANDLE);
+    vkDestroyDescriptorPool(vkglobals.device, gameglobals.descriptorPool, VK_NULL_HANDLE);
 }

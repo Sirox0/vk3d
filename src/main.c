@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
         
         vkglobals.window = SDL_CreateWindow(TITLE, w, h, SDL_WINDOW_VULKAN | (f ? SDL_WINDOW_FULLSCREEN : 0));
     }
-    if (vkglobals.window == NULL) {
+    if (vkglobals.window == VK_NULL_HANDLE) {
         printf("failed to create window\n");
         exit(1);
     }
