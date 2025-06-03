@@ -312,6 +312,7 @@ void vkInit() {
 }
 
 void vkQuit() {
+    free(vkglobals.swapchainImages);
     for (u32 i = 0; i < vkglobals.swapchainImageCount; i++) {
         vkDestroyImageView(vkglobals.device, vkglobals.swapchainImageViews[i], VK_NULL_HANDLE);
     }
