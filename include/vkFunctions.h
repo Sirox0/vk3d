@@ -23,6 +23,8 @@ extern PFN_vkEnumeratePhysicalDevices vkEnumeratePhysicalDevices;
 extern PFN_vkDestroyInstance vkDestroyInstance;
 
 // vulkan device functions
+extern PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
+extern PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
 extern PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
 extern PFN_vkCmdBindIndexBuffer vkCmdBindIndexBuffer;
 extern PFN_vkCmdBindVertexBuffers vkCmdBindVertexBuffers;
@@ -57,10 +59,8 @@ extern PFN_vkCreateBuffer vkCreateBuffer;
 extern PFN_vkDeviceWaitIdle vkDeviceWaitIdle;
 extern PFN_vkEndCommandBuffer vkEndCommandBuffer;
 extern PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
-extern PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
 extern PFN_vkCmdDraw vkCmdDraw;
 extern PFN_vkCmdBindPipeline vkCmdBindPipeline;
-extern PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
 extern PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR;
 extern PFN_vkResetFences vkResetFences;
 extern PFN_vkWaitForFences vkWaitForFences;
@@ -81,15 +81,11 @@ extern PFN_vkCreatePipelineLayout vkCreatePipelineLayout;
 extern PFN_vkDestroyPipeline vkDestroyPipeline;
 extern PFN_vkCreateComputePipelines vkCreateComputePipelines;
 extern PFN_vkCreateGraphicsPipelines vkCreateGraphicsPipelines;
-extern PFN_vkDestroyFramebuffer vkDestroyFramebuffer;
-extern PFN_vkCreateFramebuffer vkCreateFramebuffer;
 extern PFN_vkDestroyImageView vkDestroyImageView;
 extern PFN_vkCreateImageView vkCreateImageView;
 extern PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR;
 extern PFN_vkDestroySwapchainKHR vkDestroySwapchainKHR;
 extern PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR;
-extern PFN_vkDestroyRenderPass vkDestroyRenderPass;
-extern PFN_vkCreateRenderPass vkCreateRenderPass;
 extern PFN_vkGetDeviceQueue vkGetDeviceQueue;
 extern PFN_vkDestroyDevice vkDestroyDevice;
 #endif

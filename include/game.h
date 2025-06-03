@@ -55,8 +55,6 @@ typedef struct {
     VkSemaphore swapchainReadySemaphore;
     VkSemaphore renderingDoneSemaphore;
     VkFence frameFence;
-
-    VkRenderPass renderpass;
 } game_globals_t;
 
 #define MAX_STAR_SCALE 1.1f

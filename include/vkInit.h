@@ -37,8 +37,8 @@ typedef struct {
     VkSwapchainKHR swapchain;
     VkExtent2D swapchainExtent;
     u32 swapchainImageCount;
+    VkImage* swapchainImages;
     VkImageView* swapchainImageViews;
-    VkFramebuffer* swapchainFramebuffers;
     VkCommandBuffer cmdBuffer;
 } vulkan_globals_t;
 

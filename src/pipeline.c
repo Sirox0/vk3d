@@ -115,9 +115,13 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->dynamicState.dynamicStateCount = 0;
     pInfo->dynamicState.pDynamicStates = NULL;
 
+    pInfo->renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+    pInfo->renderingInfo.viewMask = 0;
+    pInfo->renderingInfo.colorAttachmentCount = 0;
+    pInfo->renderingInfo.depthAttachmentFormat = VK_FORMAT_UNDEFINED;
+    pInfo->renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
     pInfo->layout = NULL; // must be set by user
-    pInfo->renderpass = NULL; // must be set by user
-    pInfo->subpass = 0; // must be set by user
     pInfo->basePipelineHandle = NULL;
     pInfo->basePipelineIndex = 0;
 }
@@ -157,8 +161,9 @@ void pipelineCreateGraphicsPipelines(VkPipelineCache cache, u32 infoCount, graph
     VkGraphicsPipelineCreateInfo createInfos[infoCount];
 
     for (u32 i = 0; i < infoCount; i++) {
+        pInfos->renderingInfo.pNext = pInfos->pNext;
         createInfos[i].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        createInfos[i].pNext = pInfos[i].pNext;
+        createInfos[i].pNext = &pInfos[i].renderingInfo;
         createInfos[i].flags = pInfos[i].flags;
         createInfos[i].stageCount = pInfos[i].stageCount;
         createInfos[i].pStages = pInfos[i].stages;

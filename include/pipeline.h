@@ -7,6 +7,7 @@
 
 typedef struct {
     void* pNext;
+    VkPipelineRenderingCreateInfo renderingInfo;
     VkPipelineCreateFlags flags;
     u32 stageCount;
     VkPipelineShaderStageCreateInfo stages[5];

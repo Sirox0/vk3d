@@ -24,6 +24,8 @@ PFN_vkEnumeratePhysicalDevices vkEnumeratePhysicalDevices;
 PFN_vkDestroyInstance vkDestroyInstance;
 
 // vulkan device functions
+PFN_vkCmdEndRenderingKHR vkCmdEndRenderingKHR;
+PFN_vkCmdBeginRenderingKHR vkCmdBeginRenderingKHR;
 PFN_vkCmdDrawIndexed vkCmdDrawIndexed;
 PFN_vkCmdBindIndexBuffer vkCmdBindIndexBuffer;
 PFN_vkCmdBindVertexBuffers vkCmdBindVertexBuffers;
@@ -58,10 +60,8 @@ PFN_vkCreateBuffer vkCreateBuffer;
 PFN_vkDeviceWaitIdle vkDeviceWaitIdle;
 PFN_vkEndCommandBuffer vkEndCommandBuffer;
 PFN_vkBeginCommandBuffer vkBeginCommandBuffer;
-PFN_vkCmdEndRenderPass vkCmdEndRenderPass;
 PFN_vkCmdDraw vkCmdDraw;
 PFN_vkCmdBindPipeline vkCmdBindPipeline;
-PFN_vkCmdBeginRenderPass vkCmdBeginRenderPass;
 PFN_vkAcquireNextImageKHR vkAcquireNextImageKHR;
 PFN_vkResetFences vkResetFences;
 PFN_vkWaitForFences vkWaitForFences;
@@ -82,15 +82,11 @@ PFN_vkCreatePipelineLayout vkCreatePipelineLayout;
 PFN_vkDestroyPipeline vkDestroyPipeline;
 PFN_vkCreateComputePipelines vkCreateComputePipelines;
 PFN_vkCreateGraphicsPipelines vkCreateGraphicsPipelines;
-PFN_vkDestroyFramebuffer vkDestroyFramebuffer;
-PFN_vkCreateFramebuffer vkCreateFramebuffer;
 PFN_vkDestroyImageView vkDestroyImageView;
 PFN_vkCreateImageView vkCreateImageView;
 PFN_vkGetSwapchainImagesKHR vkGetSwapchainImagesKHR;
 PFN_vkDestroySwapchainKHR vkDestroySwapchainKHR;
 PFN_vkCreateSwapchainKHR vkCreateSwapchainKHR;
-PFN_vkDestroyRenderPass vkDestroyRenderPass;
-PFN_vkCreateRenderPass vkCreateRenderPass;
 PFN_vkGetDeviceQueue vkGetDeviceQueue;
 PFN_vkDestroyDevice vkDestroyDevice;
 #endif
@@ -125,6 +121,8 @@ void loadVulkanInstanceFunctions(VkInstance instance) {
 
 void loadVulkanDeviceFunctions(VkDevice device) {
 	#ifdef VK_NO_PROTOTYPES
+	vkCmdEndRenderingKHR = (PFN_vkCmdEndRenderingKHR)vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR");
+	vkCmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetDeviceProcAddr(device, "vkCmdBeginRenderingKHR");
 	vkCmdDrawIndexed = (PFN_vkCmdDrawIndexed)vkGetDeviceProcAddr(device, "vkCmdDrawIndexed");
 	vkCmdBindIndexBuffer = (PFN_vkCmdBindIndexBuffer)vkGetDeviceProcAddr(device, "vkCmdBindIndexBuffer");
 	vkCmdBindVertexBuffers = (PFN_vkCmdBindVertexBuffers)vkGetDeviceProcAddr(device, "vkCmdBindVertexBuffers");
@@ -159,10 +157,8 @@ void loadVulkanDeviceFunctions(VkDevice device) {
 	vkDeviceWaitIdle = (PFN_vkDeviceWaitIdle)vkGetDeviceProcAddr(device, "vkDeviceWaitIdle");
 	vkEndCommandBuffer = (PFN_vkEndCommandBuffer)vkGetDeviceProcAddr(device, "vkEndCommandBuffer");
 	vkBeginCommandBuffer = (PFN_vkBeginCommandBuffer)vkGetDeviceProcAddr(device, "vkBeginCommandBuffer");
-	vkCmdEndRenderPass = (PFN_vkCmdEndRenderPass)vkGetDeviceProcAddr(device, "vkCmdEndRenderPass");
 	vkCmdDraw = (PFN_vkCmdDraw)vkGetDeviceProcAddr(device, "vkCmdDraw");
 	vkCmdBindPipeline = (PFN_vkCmdBindPipeline)vkGetDeviceProcAddr(device, "vkCmdBindPipeline");
-	vkCmdBeginRenderPass = (PFN_vkCmdBeginRenderPass)vkGetDeviceProcAddr(device, "vkCmdBeginRenderPass");
 	vkAcquireNextImageKHR = (PFN_vkAcquireNextImageKHR)vkGetDeviceProcAddr(device, "vkAcquireNextImageKHR");
 	vkResetFences = (PFN_vkResetFences)vkGetDeviceProcAddr(device, "vkResetFences");
 	vkWaitForFences = (PFN_vkWaitForFences)vkGetDeviceProcAddr(device, "vkWaitForFences");
@@ -183,15 +179,11 @@ void loadVulkanDeviceFunctions(VkDevice device) {
 	vkDestroyPipeline = (PFN_vkDestroyPipeline)vkGetDeviceProcAddr(device, "vkDestroyPipeline");
 	vkCreateComputePipelines = (PFN_vkCreateComputePipelines)vkGetDeviceProcAddr(device, "vkCreateComputePipelines");
 	vkCreateGraphicsPipelines = (PFN_vkCreateGraphicsPipelines)vkGetDeviceProcAddr(device, "vkCreateGraphicsPipelines");
-	vkDestroyFramebuffer = (PFN_vkDestroyFramebuffer)vkGetDeviceProcAddr(device, "vkDestroyFramebuffer");
-	vkCreateFramebuffer = (PFN_vkCreateFramebuffer)vkGetDeviceProcAddr(device, "vkCreateFramebuffer");
 	vkDestroyImageView = (PFN_vkDestroyImageView)vkGetDeviceProcAddr(device, "vkDestroyImageView");
 	vkCreateImageView = (PFN_vkCreateImageView)vkGetDeviceProcAddr(device, "vkCreateImageView");
 	vkGetSwapchainImagesKHR = (PFN_vkGetSwapchainImagesKHR)vkGetDeviceProcAddr(device, "vkGetSwapchainImagesKHR");
 	vkDestroySwapchainKHR = (PFN_vkDestroySwapchainKHR)vkGetDeviceProcAddr(device, "vkDestroySwapchainKHR");
 	vkCreateSwapchainKHR = (PFN_vkCreateSwapchainKHR)vkGetDeviceProcAddr(device, "vkCreateSwapchainKHR");
-	vkDestroyRenderPass = (PFN_vkDestroyRenderPass)vkGetDeviceProcAddr(device, "vkDestroyRenderPass");
-	vkCreateRenderPass = (PFN_vkCreateRenderPass)vkGetDeviceProcAddr(device, "vkCreateRenderPass");
 	vkGetDeviceQueue = (PFN_vkGetDeviceQueue)vkGetDeviceProcAddr(device, "vkGetDeviceQueue");
 	vkDestroyDevice = (PFN_vkDestroyDevice)vkGetDeviceProcAddr(device, "vkDestroyDevice");
 	#endif

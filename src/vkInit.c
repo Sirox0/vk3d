@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <math.h>
 
 #include "numtypes.h"
 #include "vkFunctions.h"
@@ -47,8 +49,10 @@ VkShaderModule createShaderModuleFromFile(char* path) {
 void vkInit() {
     loadVulkanLoaderFunctions();
 
-    #define DEVICE_EXTENSION_COUNT 1
-    const char* deviceExtensions[DEVICE_EXTENSION_COUNT] = {"VK_KHR_swapchain"};
+    #define DEVICE_EXTENSION_COUNT 6
+    const char* deviceExtensions[DEVICE_EXTENSION_COUNT] = {"VK_KHR_swapchain", "VK_KHR_dynamic_rendering", "VK_KHR_depth_stencil_resolve", "VK_KHR_create_renderpass2", "VK_KHR_multiview", "VK_KHR_maintenance2"};
+    #define INSTANCE_EXTENSION_COUNT 1
+    const char* instanceExtensions[INSTANCE_EXTENSION_COUNT] = {"VK_KHR_get_physical_device_properties2"};
 
     #ifdef VALIDATION
         #define vkLayerCount 1
@@ -59,16 +63,19 @@ void vkInit() {
     #endif
 
     {
-        const char** instanceExtensions = NULL;
-        u32 instanceExtensionCount = 0;
-        instanceExtensions = (const char**)SDL_Vulkan_GetInstanceExtensions(&instanceExtensionCount);
+        u32 sdlInstanceExtensionCount = 0;
+        const char** sdlInstanceExtensions = (const char**)SDL_Vulkan_GetInstanceExtensions(&sdlInstanceExtensionCount);
+
+        const char* finalInstanceExtensions[sdlInstanceExtensionCount + INSTANCE_EXTENSION_COUNT];
+        for (u32 i = 0; i < sdlInstanceExtensionCount; i++) finalInstanceExtensions[i] = sdlInstanceExtensions[i];
+        for (u32 i = sdlInstanceExtensionCount; i < sdlInstanceExtensionCount + INSTANCE_EXTENSION_COUNT; i++) finalInstanceExtensions[i] = instanceExtensions[i - sdlInstanceExtensionCount];
 
         VkInstanceCreateInfo instanceInfo = {};
         instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         instanceInfo.enabledLayerCount = vkLayerCount;
         instanceInfo.ppEnabledLayerNames = vkLayers;
-        instanceInfo.enabledExtensionCount = instanceExtensionCount;
-        instanceInfo.ppEnabledExtensionNames = instanceExtensions;
+        instanceInfo.enabledExtensionCount = sdlInstanceExtensionCount + INSTANCE_EXTENSION_COUNT;
+        instanceInfo.ppEnabledExtensionNames = (const char**)finalInstanceExtensions;
 
         VK_ASSERT(vkCreateInstance(&instanceInfo, NULL, &vkglobals.instance), "failed to create vulkan instance\n");
     }
@@ -172,6 +179,14 @@ void vkInit() {
     {
         f32 priorities[] = {1.0f};
 
+        VkPhysicalDeviceDynamicRenderingFeaturesKHR deviceDynamicRenderingFeatures = {};
+        deviceDynamicRenderingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+        deviceDynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+
+        VkPhysicalDeviceFeatures2KHR deviceFeatures = {};
+        deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR;
+        deviceFeatures.pNext = &deviceDynamicRenderingFeatures;
+
         VkDeviceQueueCreateInfo deviceQueueInfo = {};
         deviceQueueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         deviceQueueInfo.pQueuePriorities = priorities;
@@ -184,9 +199,9 @@ void vkInit() {
         deviceInfo.ppEnabledLayerNames = vkLayers;
         deviceInfo.enabledExtensionCount = DEVICE_EXTENSION_COUNT;
         deviceInfo.ppEnabledExtensionNames = deviceExtensions;
-        deviceInfo.pEnabledFeatures = NULL;
         deviceInfo.queueCreateInfoCount = 1;
         deviceInfo.pQueueCreateInfos = &deviceQueueInfo;
+        deviceInfo.pNext = &deviceFeatures;
 
         VK_ASSERT(vkCreateDevice(vkglobals.physicalDevice, &deviceInfo, NULL, &vkglobals.device), "failed to create vulkan logical device\n");
     }
@@ -272,19 +287,17 @@ void vkInit() {
     vkGetSwapchainImagesKHR(vkglobals.device, vkglobals.swapchain, &vkglobals.swapchainImageCount, NULL);
 
     {
-        VkImage swapchainImages[vkglobals.swapchainImageCount];
-        vkGetSwapchainImagesKHR(vkglobals.device, vkglobals.swapchain, &vkglobals.swapchainImageCount, swapchainImages);
+        void* buf = malloc(sizeof(VkImage) * vkglobals.swapchainImageCount + sizeof(VkImageView) * vkglobals.swapchainImageCount);
+        vkglobals.swapchainImages = (VkImage*)buf;
+        vkglobals.swapchainImageViews = (VkImageView*)(buf + sizeof(VkImage) * vkglobals.swapchainImageCount);
 
-        // the buffer stores both swapchain image views and swapchain framebuffers
-        void* buffer = malloc(sizeof(VkImageView) * vkglobals.swapchainImageCount + sizeof(VkFramebuffer) * vkglobals.swapchainImageCount);
-        vkglobals.swapchainImageViews = (VkImageView*)buffer;
-        vkglobals.swapchainFramebuffers = (VkFramebuffer*)(buffer + vkglobals.swapchainImageCount * sizeof(VkImageView));
+        vkGetSwapchainImagesKHR(vkglobals.device, vkglobals.swapchain, &vkglobals.swapchainImageCount, vkglobals.swapchainImages);
 
         for (u32 i = 0; i < vkglobals.swapchainImageCount; i++) {
             VkImageViewCreateInfo viewInfo = {};
             viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            viewInfo.image = swapchainImages[i];
+            viewInfo.image = vkglobals.swapchainImages[i];
             viewInfo.format = vkglobals.surfaceFormat.format;
             viewInfo.components = (VkComponentMapping){VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY};
             viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -296,8 +309,6 @@ void vkInit() {
             VK_ASSERT(vkCreateImageView(vkglobals.device, &viewInfo, NULL, &vkglobals.swapchainImageViews[i]), "failed to create image view\n");
         }
     }
-
-    vkglobals.fullscreen = 0;
 }
 
 void vkQuit() {

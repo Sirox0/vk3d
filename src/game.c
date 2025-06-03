@@ -144,54 +144,6 @@ void gameInit() {
     }
 
     {
-        VkAttachmentDescription colorAttachmentDesc = {};
-        colorAttachmentDesc.format = vkglobals.surfaceFormat.format;
-        colorAttachmentDesc.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachmentDesc.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachmentDesc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachmentDesc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentDesc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachmentDesc.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachmentDesc.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentReference colorAttachmentRef = {};
-        colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription subpass = {};
-        subpass.colorAttachmentCount = 1;
-        subpass.pColorAttachments = &colorAttachmentRef;
-        subpass.inputAttachmentCount = 0;
-        subpass.preserveAttachmentCount = 0;
-        subpass.pDepthStencilAttachment = NULL;
-        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
-        VkRenderPassCreateInfo renderpassInfo = {};
-        renderpassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderpassInfo.dependencyCount = 0;
-        renderpassInfo.pDependencies = NULL;
-        renderpassInfo.attachmentCount = 1;
-        renderpassInfo.pAttachments = &colorAttachmentDesc;
-        renderpassInfo.subpassCount = 1;
-        renderpassInfo.pSubpasses = &subpass;
-
-        VK_ASSERT(vkCreateRenderPass(vkglobals.device, &renderpassInfo, NULL, &gameglobals.renderpass), "failed to create renderpass\n");
-    }
-
-    for (u32 i = 0; i < vkglobals.swapchainImageCount; i++) {
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = gameglobals.renderpass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = &vkglobals.swapchainImageViews[i];
-        framebufferInfo.width = vkglobals.swapchainExtent.width;
-        framebufferInfo.height = vkglobals.swapchainExtent.height;
-        framebufferInfo.layers = 1;
-
-        VK_ASSERT(vkCreateFramebuffer(vkglobals.device, &framebufferInfo, NULL, &vkglobals.swapchainFramebuffers[i]), "failed to create framebuffer\n");
-    }
-
-    {
         VkDescriptorPoolSize uboPoolSize = {};
         uboPoolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         uboPoolSize.descriptorCount = 2;
@@ -261,9 +213,9 @@ void gameInit() {
         pipelineInfo.stages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         pipelineInfo.stages[0].module = createShaderModuleFromFile("assets/shaders/cube.vert.spv");
         pipelineInfo.stages[1].module = createShaderModuleFromFile("assets/shaders/cube.frag.spv");
+        pipelineInfo.renderingInfo.colorAttachmentCount = 1;
+        pipelineInfo.renderingInfo.pColorAttachmentFormats = (VkFormat[]){vkglobals.surfaceFormat.format};
         pipelineInfo.layout = gameglobals.cubePipelineLayout;
-        pipelineInfo.renderpass = gameglobals.renderpass;
-        pipelineInfo.subpass = 0;
 
         VkVertexInputBindingDescription bindingDesc = {};
         bindingDesc.binding = 0;
@@ -394,18 +346,44 @@ void gameRender() {
 
         VK_ASSERT(vkBeginCommandBuffer(vkglobals.cmdBuffer, &cmdBeginInfo), "failed to begin command buffer\n");
 
-        VkClearValue clearValue = {};
-        clearValue.color = (VkClearColorValue){{0.0f, 0.0f, 0.0f, 0.0f}};
+        {
+            VkImageMemoryBarrier imageBarrier = {};
+            imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            imageBarrier.image = vkglobals.swapchainImages[imageIndex];
+            imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageBarrier.subresourceRange.baseArrayLayer = 0;
+            imageBarrier.subresourceRange.layerCount = 1;
+            imageBarrier.subresourceRange.baseMipLevel = 0;
+            imageBarrier.subresourceRange.levelCount = 1;
+            imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageBarrier.srcAccessMask = 0;
+            imageBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            imageBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            imageBarrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-        VkRenderPassBeginInfo renderpassBeginInfo = {};
-        renderpassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderpassBeginInfo.renderPass = gameglobals.renderpass;
-        renderpassBeginInfo.renderArea = (VkRect2D){(VkOffset2D){0, 0}, vkglobals.swapchainExtent};
-        renderpassBeginInfo.framebuffer = vkglobals.swapchainFramebuffers[imageIndex];
-        renderpassBeginInfo.clearValueCount = 1;
-        renderpassBeginInfo.pClearValues = &clearValue;
+            vkCmdPipelineBarrier(vkglobals.cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, NULL, 0, NULL, 1, &imageBarrier);
+        }
 
-        vkCmdBeginRenderPass(vkglobals.cmdBuffer, &renderpassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        VkRenderingAttachmentInfoKHR swapchainImageAttachment = {};
+        swapchainImageAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
+        swapchainImageAttachment.imageView = vkglobals.swapchainImageViews[imageIndex];
+        swapchainImageAttachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        swapchainImageAttachment.resolveMode = VK_RESOLVE_MODE_NONE_KHR;
+        swapchainImageAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        swapchainImageAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        swapchainImageAttachment.clearValue = (VkClearValue){{{0.0f, 0.0f, 0.0f, 0.0f}}};
+
+        VkRenderingInfoKHR renderingInfo = {};
+        renderingInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+        renderingInfo.renderArea = (VkRect2D){(VkOffset2D){0, 0}, vkglobals.swapchainExtent};
+        renderingInfo.layerCount = 1;
+        renderingInfo.colorAttachmentCount = 1;
+        renderingInfo.pColorAttachments = &swapchainImageAttachment;
+        renderingInfo.pDepthAttachment = NULL;
+        renderingInfo.pStencilAttachment = NULL;
+
+        vkCmdBeginRenderingKHR(vkglobals.cmdBuffer, &renderingInfo);
 
         VkDeviceSize vertexBufferOffsets[1] = {};
         vkCmdBindPipeline(vkglobals.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gameglobals.cubePipeline);
@@ -415,7 +393,26 @@ void gameRender() {
 
         vkCmdDrawIndexed(vkglobals.cmdBuffer, 36, 1, 0, 0, 0);
 
-        vkCmdEndRenderPass(vkglobals.cmdBuffer);
+        vkCmdEndRenderingKHR(vkglobals.cmdBuffer);
+
+        {
+            VkImageMemoryBarrier imageBarrier = {};
+            imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            imageBarrier.image = vkglobals.swapchainImages[imageIndex];
+            imageBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageBarrier.subresourceRange.baseArrayLayer = 0;
+            imageBarrier.subresourceRange.layerCount = 1;
+            imageBarrier.subresourceRange.baseMipLevel = 0;
+            imageBarrier.subresourceRange.levelCount = 1;
+            imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            imageBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            imageBarrier.dstAccessMask = 0;
+            imageBarrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            imageBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+            vkCmdPipelineBarrier(vkglobals.cmdBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_DEPENDENCY_BY_REGION_BIT, 0, NULL, 0, NULL, 1, &imageBarrier);
+        }
 
         VK_ASSERT(vkEndCommandBuffer(vkglobals.cmdBuffer), "failed to end command buffer\n");
     }
@@ -459,8 +456,4 @@ void gameQuit() {
     vkFreeMemory(vkglobals.device, gameglobals.cubeVertexIndexBuffersMemory, NULL);
     vkDestroyDescriptorSetLayout(vkglobals.device, gameglobals.uboDescriptorSetLayout, NULL);
     vkDestroyDescriptorPool(vkglobals.device, gameglobals.descriptorPool, NULL);
-    for (u32 i = 0; i < vkglobals.swapchainImageCount; i++) {
-        vkDestroyFramebuffer(vkglobals.device, vkglobals.swapchainFramebuffers[i], NULL);
-    }
-    vkDestroyRenderPass(vkglobals.device, gameglobals.renderpass, NULL);
 }
