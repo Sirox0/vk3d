@@ -312,11 +312,10 @@ void vkInit() {
 }
 
 void vkQuit() {
-    free(vkglobals.swapchainImages);
     for (u32 i = 0; i < vkglobals.swapchainImageCount; i++) {
         vkDestroyImageView(vkglobals.device, vkglobals.swapchainImageViews[i], VK_NULL_HANDLE);
     }
-    free(vkglobals.swapchainImageViews);
+    free(vkglobals.swapchainImages);
     vkDestroySwapchainKHR(vkglobals.device, vkglobals.swapchain, VK_NULL_HANDLE);
     vkDestroyCommandPool(vkglobals.device, vkglobals.shortCommandPool, VK_NULL_HANDLE);
     vkDestroyCommandPool(vkglobals.device, vkglobals.commandPool, VK_NULL_HANDLE);
