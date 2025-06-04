@@ -48,6 +48,8 @@ game_globals_t gameglobals = {};
 
 #define DEPTH_FORMATS_COUNT 3
 
+#define INSTANCE_BUFFER_SIZE sizeof(mat4) * 2 + sizeof(vec3) * 256
+
 void gameInit() {
     VkCommandBuffer garbageCmdBuffers[GARBAGE_CMD_BUFFER_NUM];
     VkBuffer garbageBuffers[GARBAGE_BUFFER_NUM];
@@ -198,7 +200,7 @@ void gameInit() {
 
     {
         createBuffer(&gameglobals.cubeUniformBuffer, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(mat4) * 2);
-        createBuffer(&gameglobals.cubeInstanceBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, sizeof(mat4) * 256);
+        createBuffer(&gameglobals.cubeInstanceBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, sizeof(vec3) * 256);
 
         VkMemoryRequirements uboMemReq;
         vkGetBufferMemoryRequirements(vkglobals.device, gameglobals.cubeUniformBuffer, &uboMemReq);
@@ -289,25 +291,32 @@ void gameInit() {
         pipelineInfo.renderingInfo.depthAttachmentFormat = gameglobals.depthTextureFormat;
         pipelineInfo.layout = gameglobals.cubePipelineLayout;
 
-        VkVertexInputBindingDescription bindingDesc = {};
-        bindingDesc.binding = 0;
-        bindingDesc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        bindingDesc.stride = sizeof(vertex_input_cube_t);
+        VkVertexInputBindingDescription bindingDescs[2] = {};
+        bindingDescs[0].binding = 0;
+        bindingDescs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        bindingDescs[0].stride = sizeof(vertex_input_cube_t);
+        bindingDescs[1].binding = 1;
+        bindingDescs[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+        bindingDescs[1].stride = sizeof(vec3);
 
-        VkVertexInputAttributeDescription attributeDescs[2] = {};
+        VkVertexInputAttributeDescription attributeDescs[3] = {};
         attributeDescs[0].binding = 0;
         attributeDescs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescs[0].location = 0;
-        attributeDescs[0].offset = offsetof(vertex_input_cube_t, pos);
+        attributeDescs[0].offset = 0;
         attributeDescs[1].binding = 0;
         attributeDescs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescs[1].location = 1;
         attributeDescs[1].offset = offsetof(vertex_input_cube_t, color);
+        attributeDescs[2].binding = 1;
+        attributeDescs[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescs[2].location = 2;
+        attributeDescs[2].offset = 0;
 
-        pipelineInfo.vertexInputState.vertexAttributeDescriptionCount = 2;
+        pipelineInfo.vertexInputState.vertexAttributeDescriptionCount = 3;
         pipelineInfo.vertexInputState.pVertexAttributeDescriptions = attributeDescs;
-        pipelineInfo.vertexInputState.vertexBindingDescriptionCount = 1;
-        pipelineInfo.vertexInputState.pVertexBindingDescriptions = &bindingDesc;
+        pipelineInfo.vertexInputState.vertexBindingDescriptionCount = 2;
+        pipelineInfo.vertexInputState.pVertexBindingDescriptions = bindingDescs;
 
         pipelineInfo.depthStencilState.depthTestEnable = VK_TRUE;
         pipelineInfo.depthStencilState.depthWriteEnable = VK_TRUE;
@@ -332,7 +341,7 @@ void gameInit() {
         VK_ASSERT(vkCreateFence(vkglobals.device, &fenceInfo, VK_NULL_HANDLE, &gameglobals.frameFence), "failed to create fence\n");
     }
 
-    glm_perspective(glm_rad(45.0f), (f32)vkglobals.swapchainExtent.width / vkglobals.swapchainExtent.height, 0.01f, 15.0f, gameglobals.cubeBuffersMemoryRaw + sizeof(mat4));
+    glm_perspective(glm_rad(45.0f), (f32)vkglobals.swapchainExtent.width / vkglobals.swapchainExtent.height, 15.0f, 0.01f, gameglobals.cubeBuffersMemoryRaw + sizeof(mat4));
 
     {
         offset_size_t aligned = getAlignedOffsetAndSize(sizeof(mat4), sizeof(mat4), vkglobals.deviceProperties.limits.nonCoherentAtomSize);
@@ -340,7 +349,7 @@ void gameInit() {
         VkMappedMemoryRange memoryRange = {};
         memoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         memoryRange.offset = aligned.offset;
-        memoryRange.size = aligned.size > (sizeof(mat4) * 258) ? VK_WHOLE_SIZE : aligned.size;
+        memoryRange.size = aligned.size > INSTANCE_BUFFER_SIZE ? VK_WHOLE_SIZE : aligned.size;
         memoryRange.memory = gameglobals.cubeBuffersMemory;
 
         VK_ASSERT(vkFlushMappedMemoryRanges(vkglobals.device, 1, &memoryRange), "failed to flush device memory\n");
@@ -396,7 +405,7 @@ void updateCubeUbo() {
     VkMappedMemoryRange memoryRange = {};
     memoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memoryRange.offset = 0;
-    memoryRange.size = alignedSize > (sizeof(mat4) * 258) ? VK_WHOLE_SIZE : alignedSize;
+    memoryRange.size = alignedSize > INSTANCE_BUFFER_SIZE ? VK_WHOLE_SIZE : alignedSize;
     memoryRange.memory = gameglobals.cubeBuffersMemory;
 
     VK_ASSERT(vkFlushMappedMemoryRanges(vkglobals.device, 1, &memoryRange), "failed to flush device memory\n");
@@ -466,13 +475,13 @@ void gameRender() {
 
         vkCmdBeginRenderingKHR(vkglobals.cmdBuffer, &renderingInfo);
 
-        VkDeviceSize vertexBufferOffsets[1] = {};
+        VkDeviceSize vertexBufferOffsets[2] = {};
         vkCmdBindPipeline(vkglobals.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gameglobals.cubePipeline);
-        vkCmdBindVertexBuffers(vkglobals.cmdBuffer, 0, 1, &gameglobals.cubeVertexBuffer, vertexBufferOffsets);
+        vkCmdBindVertexBuffers(vkglobals.cmdBuffer, 0, 2, (VkBuffer[]){gameglobals.cubeVertexBuffer, gameglobals.cubeInstanceBuffer}, vertexBufferOffsets);
         vkCmdBindIndexBuffer(vkglobals.cmdBuffer, gameglobals.cubeIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
         vkCmdBindDescriptorSets(vkglobals.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gameglobals.cubePipelineLayout, 0, 1, &gameglobals.cubeUboDescriptorSet, 0, VK_NULL_HANDLE);
 
-        vkCmdDrawIndexed(vkglobals.cmdBuffer, 36, 1, 0, 0, 0);
+        vkCmdDrawIndexed(vkglobals.cmdBuffer, 36, 2, 0, 0, 0);
 
         vkCmdEndRenderingKHR(vkglobals.cmdBuffer);
 

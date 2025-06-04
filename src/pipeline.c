@@ -82,7 +82,7 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->depthStencilState.flags = 0;
     pInfo->depthStencilState.depthTestEnable = VK_FALSE;
     pInfo->depthStencilState.depthWriteEnable = VK_FALSE;
-    pInfo->depthStencilState.depthCompareOp = VK_COMPARE_OP_GREATER;
+    pInfo->depthStencilState.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
     pInfo->depthStencilState.depthBoundsTestEnable = VK_FALSE;
     pInfo->depthStencilState.stencilTestEnable = VK_FALSE;
     pInfo->depthStencilState.minDepthBounds = 0.0f;
