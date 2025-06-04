@@ -171,7 +171,7 @@ void vkInit() {
         }
 
         if (!foundDevice) {
-            printf("failed to find a suitable vulkan device\n");
+            printf("failed to find a suitable vulkan device, try updating your gpu drivers\n");
             exit(1);
         }
     }

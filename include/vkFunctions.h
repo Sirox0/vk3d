@@ -10,6 +10,7 @@ extern PFN_vkCreateInstance vkCreateInstance;
 
 // vulkan instance functions
 extern PFN_vkGetDeviceProcAddr vkGetDeviceProcAddr;
+extern PFN_vkGetPhysicalDeviceFormatProperties vkGetPhysicalDeviceFormatProperties;
 extern PFN_vkGetPhysicalDeviceProperties vkGetPhysicalDeviceProperties;
 extern PFN_vkGetPhysicalDeviceMemoryProperties vkGetPhysicalDeviceMemoryProperties;
 extern PFN_vkCreateDevice vkCreateDevice;

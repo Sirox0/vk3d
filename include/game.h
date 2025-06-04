@@ -21,26 +21,29 @@ typedef struct {
 } vertex_input_cube_t;
 
 typedef struct {
-    VkImage image;
-    VkImageView view;
-    VkSampler sampler;
-} texture_t;
-
-typedef struct {
     u8 loopActive;
     u32 deltaTime;
 
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout uboDescriptorSetLayout;
 
+    // layout: cube vertex buffer -> cube index buffer -> depthTexture
+    VkDeviceMemory deviceLocalMemory;
+
+    VkFormat depthTextureFormat;
+    VkImage depthTexture;
+    VkImageView depthTextureView;
+    VkDeviceSize depthTextureOffset;
+
     VkBuffer cubeVertexBuffer;
     VkBuffer cubeIndexBuffer;
     VkDeviceSize cubeIndexBufferOffset;
-    VkDeviceMemory cubeVertexIndexBuffersMemory;
 
     VkBuffer cubeUniformBuffer;
-    VkDeviceMemory cubeUniformBufferMemory;
-    void* cubeUniformBufferMemoryRaw;
+    VkBuffer cubeInstanceBuffer;
+    VkDeviceSize cubeInstanceBufferOffset;
+    VkDeviceMemory cubeBuffersMemory;
+    void* cubeBuffersMemoryRaw;
 
     VkDescriptorSet cubeUboDescriptorSet;
     VkPipelineLayout cubePipelineLayout;
