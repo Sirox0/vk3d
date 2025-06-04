@@ -34,6 +34,7 @@ find_package(Vulkan REQUIRED)
 
 set(PROFILER_IN_DEBUG_AND_RELEASE OFF)
 set(DEBUG_RENDERER_IN_DEBUG_AND_RELEASE OFF)
+set(DOUBLE_PRECISION OFF)
 add_subdirectory(external/JoltC)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
