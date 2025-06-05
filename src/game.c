@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <memory.h>
 #include <math.h>
 
@@ -18,25 +19,121 @@
 #include "config.h"
 #include "mathext.h"
 
+u32 bplGetNumLayers(const void *self) {
+    (void)self;
+    return 2;
+}
+
+JPC_BroadPhaseLayer bplGetLayer(const void *self, JPC_ObjectLayer layer) {
+    (void)self;
+
+    switch (layer) {
+        case 0:
+            return 0;
+        case 1:
+            return 1;
+    }
+
+    return -1;
+}
+
+bool ovbShouldCollide(const void *self, JPC_ObjectLayer layer1, JPC_BroadPhaseLayer layer2) {
+    (void)self;
+
+    switch (layer1) {
+        case 0:
+            return layer2 == 1;
+        case 1:
+            return true;
+    }
+
+    return false;
+}
+
+bool ovoShouldCollide(const void *self, JPC_ObjectLayer layer1, JPC_ObjectLayer layer2) {
+    (void)self;
+
+    switch (layer1) {
+        case 0:
+            return layer2 == 1;
+        case 1:
+            return true;
+    }
+
+    return false;
+}
+
+#define JPC_ASSERT(expression) \
+    { \
+        JPC_String* err; \
+        if (!expression) { \
+            printf("jolt error: %s\n", JPC_String_c_str(err)); \
+            JPC_String_delete(err); \
+            exit(1); \
+        } \
+    }
+
 void joltInit() {
     JPC_RegisterDefaultAllocator();
     JPC_FactoryInit();
     JPC_RegisterTypes();
 
-    /*JPC_BroadPhaseLayerInterface* broadPhaseLayerInterface = JPC_BroadPhaseLayerInterface_new(NULL, Hello_BPL);
-    JPC_ObjectVsBroadPhaseLayerFilter* objectVsBroadPhaseLayerFilter = JPC_ObjectVsBroadPhaseLayerFilter_new(NULL, Hello_OVB);
-    JPC_ObjectLayerPairFilter* objectVsObjectLayerFilter = JPC_ObjectLayerPairFilter_new(NULL, Hello_OVO);
+    gameglobals.tempAllocator = JPC_TempAllocatorImpl_new(10 * 256 * 256);
+	gameglobals.jobSystem = JPC_JobSystemThreadPool_new2(256, JPC_MAX_PHYSICS_BARRIERS);
 
-    JPC_PhysicsSystem* physicsSystem = JPC_PhysicsSystem_new();
-    JPC_PhysicsSystem_Init(
-        physicsSystem,
-        256,
-        0,
-        256,
-        256,
-        broad_phase_layer_interface,
-        object_vs_broad_phase_layer_filter,
-        object_vs_object_layer_filter);*/
+    JPC_BroadPhaseLayerInterfaceFns bpl = {};
+    bpl.GetNumBroadPhaseLayers = bplGetNumLayers;
+    bpl.GetBroadPhaseLayer = bplGetLayer;
+
+    JPC_ObjectVsBroadPhaseLayerFilterFns ovb = {};
+    ovb.ShouldCollide = ovbShouldCollide;
+
+    JPC_ObjectLayerPairFilterFns ovo = {};
+    ovo.ShouldCollide = ovoShouldCollide;
+
+    gameglobals.broadPhaseLayerInterface = JPC_BroadPhaseLayerInterface_new(NULL, bpl);
+    gameglobals.objectVsBroadPhaseLayerFilter = JPC_ObjectVsBroadPhaseLayerFilter_new(NULL, ovb);
+    gameglobals.objectVsObjectLayerFilter = JPC_ObjectLayerPairFilter_new(NULL, ovo);
+
+    gameglobals.physicsSystem = JPC_PhysicsSystem_new();
+    JPC_PhysicsSystem_Init(gameglobals.physicsSystem, 256, 0, 256, 256, gameglobals.broadPhaseLayerInterface, gameglobals.objectVsBroadPhaseLayerFilter, gameglobals.objectVsObjectLayerFilter);
+    
+    gameglobals.bodyInterface = JPC_PhysicsSystem_GetBodyInterface(gameglobals.physicsSystem);
+
+    JPC_BoxShapeSettings boxShapeSettings;
+	JPC_BoxShapeSettings_default(&boxShapeSettings);
+	boxShapeSettings.HalfExtent = (JPC_Vec3){100.0f, 1.0f, 100.0f, 1.0f};
+	boxShapeSettings.Density = 500.0f;
+
+    JPC_Shape* floorShape;
+    JPC_ASSERT(JPC_BoxShapeSettings_Create(&boxShapeSettings, &floorShape, &err));
+
+    JPC_BodyCreationSettings boxSettings;
+	JPC_BodyCreationSettings_default(&boxSettings);
+	boxSettings.Position = (JPC_RVec3){0.0f, 3.0f, 0.0f, 1.0f};
+	boxSettings.MotionType = JPC_MOTION_TYPE_STATIC;
+	boxSettings.ObjectLayer = 0;
+	boxSettings.Shape = floorShape;
+
+    gameglobals.floor = JPC_BodyInterface_CreateBody(gameglobals.bodyInterface, &boxSettings);
+	JPC_BodyInterface_AddBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.floor), JPC_ACTIVATION_DONT_ACTIVATE);
+
+	boxShapeSettings.HalfExtent = (JPC_Vec3){1.0f, 1.0f, 1.0f, 1.0f};
+	boxShapeSettings.Density = 50.0;
+
+    JPC_Shape* cubeShape;
+    JPC_ASSERT(JPC_BoxShapeSettings_Create(&boxShapeSettings, &cubeShape, &err));
+
+	boxSettings.Position = (JPC_RVec3){0.0f, -5.0f, 3.0f, 1.0f};
+	boxSettings.MotionType = JPC_MOTION_TYPE_DYNAMIC;
+	boxSettings.ObjectLayer = 1;
+	boxSettings.Shape = cubeShape;
+    boxSettings.GravityFactor *= -1;
+
+    gameglobals.cube = JPC_BodyInterface_CreateBody(gameglobals.bodyInterface, &boxSettings);
+	JPC_BodyInterface_AddBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube), JPC_ACTIVATION_ACTIVATE);
+
+    JPC_PhysicsSystem_OptimizeBroadPhase(gameglobals.physicsSystem);
 }
 
 game_globals_t gameglobals = {};
@@ -48,9 +145,9 @@ game_globals_t gameglobals = {};
 
 #define DEPTH_FORMATS_COUNT 3
 
-#define INSTANCE_BUFFER_SIZE sizeof(mat4) * 2 + sizeof(vec3) * 256
-
 void gameInit() {
+    joltInit();
+    
     VkCommandBuffer garbageCmdBuffers[GARBAGE_CMD_BUFFER_NUM];
     VkBuffer garbageBuffers[GARBAGE_BUFFER_NUM];
     VkDeviceMemory garbageBuffersMem[GARBAGE_BUFFER_MEMORY_NUM];
@@ -107,25 +204,25 @@ void gameInit() {
             4, 0, 3
         };
 
+        createImage(&gameglobals.depthTexture, vkglobals.swapchainExtent.width, vkglobals.swapchainExtent.height, gameglobals.depthTextureFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
         createBuffer(&gameglobals.cubeVertexBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, sizeof(vertexbuf));
         createBuffer(&gameglobals.cubeIndexBuffer, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, sizeof(indexbuf));
-        createImage(&gameglobals.depthTexture, vkglobals.swapchainExtent.width, vkglobals.swapchainExtent.height, gameglobals.depthTextureFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
+        VkMemoryRequirements depthTextureMemReq;
+        vkGetImageMemoryRequirements(vkglobals.device, gameglobals.depthTexture, &depthTextureMemReq);
         VkMemoryRequirements vertexBufferMemReq;
         vkGetBufferMemoryRequirements(vkglobals.device, gameglobals.cubeVertexBuffer, &vertexBufferMemReq);
         VkMemoryRequirements indexBufferMemReq;
         vkGetBufferMemoryRequirements(vkglobals.device, gameglobals.cubeIndexBuffer, &indexBufferMemReq);
-        VkMemoryRequirements depthTextureMemReq;
-        vkGetImageMemoryRequirements(vkglobals.device, gameglobals.depthTexture, &depthTextureMemReq);
 
-        gameglobals.cubeIndexBufferOffset = vertexBufferMemReq.size + getAlignCooficient(vertexBufferMemReq.size, indexBufferMemReq.alignment);
-        gameglobals.depthTextureOffset = gameglobals.cubeIndexBufferOffset + indexBufferMemReq.size + getAlignCooficient(gameglobals.cubeIndexBufferOffset + indexBufferMemReq.size, depthTextureMemReq.alignment);
+        gameglobals.cubeVertexBufferOffset = depthTextureMemReq.size + getAlignCooficient(depthTextureMemReq.size, vertexBufferMemReq.alignment);
+        gameglobals.cubeIndexBufferOffset = gameglobals.cubeVertexBufferOffset + vertexBufferMemReq.size + getAlignCooficient(gameglobals.cubeVertexBufferOffset + vertexBufferMemReq.size, indexBufferMemReq.alignment);
 
-        allocateMemory(&gameglobals.deviceLocalMemory, gameglobals.depthTextureOffset + depthTextureMemReq.size, getMemoryTypeIndex(vertexBufferMemReq.memoryTypeBits & indexBufferMemReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+        allocateMemory(&gameglobals.deviceLocalMemory, gameglobals.cubeIndexBufferOffset + indexBufferMemReq.size, getMemoryTypeIndex(indexBufferMemReq.memoryTypeBits & vertexBufferMemReq.memoryTypeBits & indexBufferMemReq.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
-        VK_ASSERT(vkBindBufferMemory(vkglobals.device, gameglobals.cubeVertexBuffer, gameglobals.deviceLocalMemory, 0), "failed to bind buffer memory\n");
+        VK_ASSERT(vkBindImageMemory(vkglobals.device, gameglobals.depthTexture, gameglobals.deviceLocalMemory,  0), "failed to bind image memory\n");
+        VK_ASSERT(vkBindBufferMemory(vkglobals.device, gameglobals.cubeVertexBuffer, gameglobals.deviceLocalMemory, gameglobals.cubeVertexBufferOffset), "failed to bind buffer memory\n");
         VK_ASSERT(vkBindBufferMemory(vkglobals.device, gameglobals.cubeIndexBuffer, gameglobals.deviceLocalMemory, gameglobals.cubeIndexBufferOffset), "failed to bind buffer memory\n");
-        VK_ASSERT(vkBindImageMemory(vkglobals.device, gameglobals.depthTexture, gameglobals.deviceLocalMemory,  gameglobals.depthTextureOffset), "failed to bind image memory\n");
 
         {
             createBuffer(&garbageBuffers[0], VK_BUFFER_USAGE_TRANSFER_SRC_BIT, sizeof(vertexbuf) + sizeof(indexbuf));
@@ -156,10 +253,10 @@ void gameInit() {
             VkBufferCopy copyInfo[2] = {};
             copyInfo[0].srcOffset = 0;
             copyInfo[0].dstOffset = 0;
-            copyInfo[0].size = sizeof(vertexbuf);
+            copyInfo[0].size = vertexBufferMemReq.size;
             copyInfo[1].srcOffset = sizeof(vertexbuf);
             copyInfo[1].dstOffset = 0;
-            copyInfo[1].size = sizeof(indexbuf);
+            copyInfo[1].size = indexBufferMemReq.size;
 
             vkCmdCopyBuffer(garbageCmdBuffers[0], garbageBuffers[0], gameglobals.cubeVertexBuffer, 1, &copyInfo[0]);
             vkCmdCopyBuffer(garbageCmdBuffers[0], garbageBuffers[0], gameglobals.cubeIndexBuffer, 1, &copyInfo[1]);
@@ -199,19 +296,14 @@ void gameInit() {
     createImageView(&gameglobals.depthTextureView, gameglobals.depthTexture, gameglobals.depthTextureFormat, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
 
     {
-        createBuffer(&gameglobals.cubeUniformBuffer, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(mat4) * 2);
-        createBuffer(&gameglobals.cubeInstanceBuffer, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, sizeof(vec3) * 256);
+        createBuffer(&gameglobals.cubeUniformBuffer, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, sizeof(mat4) * 3);
 
         VkMemoryRequirements uboMemReq;
         vkGetBufferMemoryRequirements(vkglobals.device, gameglobals.cubeUniformBuffer, &uboMemReq);
-        VkMemoryRequirements vbMemReq;
-        vkGetBufferMemoryRequirements(vkglobals.device, gameglobals.cubeInstanceBuffer, &vbMemReq);
-        gameglobals.cubeIndexBufferOffset = uboMemReq.size + getAlignCooficient(uboMemReq.size, vbMemReq.alignment);
 
-        allocateMemory(&gameglobals.cubeBuffersMemory, gameglobals.cubeIndexBufferOffset + vbMemReq.size, getMemoryTypeIndex(uboMemReq.memoryTypeBits & vbMemReq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
+        allocateMemory(&gameglobals.cubeBuffersMemory, uboMemReq.size, getMemoryTypeIndex(uboMemReq.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT));
 
         VK_ASSERT(vkBindBufferMemory(vkglobals.device, gameglobals.cubeUniformBuffer, gameglobals.cubeBuffersMemory, 0), "failed to bind buffer memory\n");
-        VK_ASSERT(vkBindBufferMemory(vkglobals.device, gameglobals.cubeInstanceBuffer, gameglobals.cubeBuffersMemory, gameglobals.cubeIndexBufferOffset), "failed to bind buffer memory\n");
 
         VK_ASSERT(vkMapMemory(vkglobals.device, gameglobals.cubeBuffersMemory, 0, VK_WHOLE_SIZE, 0, &gameglobals.cubeBuffersMemoryRaw), "failed to map memory\n");
     }
@@ -291,15 +383,12 @@ void gameInit() {
         pipelineInfo.renderingInfo.depthAttachmentFormat = gameglobals.depthTextureFormat;
         pipelineInfo.layout = gameglobals.cubePipelineLayout;
 
-        VkVertexInputBindingDescription bindingDescs[2] = {};
+        VkVertexInputBindingDescription bindingDescs[1] = {};
         bindingDescs[0].binding = 0;
         bindingDescs[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         bindingDescs[0].stride = sizeof(vertex_input_cube_t);
-        bindingDescs[1].binding = 1;
-        bindingDescs[1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-        bindingDescs[1].stride = sizeof(vec3);
 
-        VkVertexInputAttributeDescription attributeDescs[3] = {};
+        VkVertexInputAttributeDescription attributeDescs[2] = {};
         attributeDescs[0].binding = 0;
         attributeDescs[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescs[0].location = 0;
@@ -308,14 +397,10 @@ void gameInit() {
         attributeDescs[1].format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescs[1].location = 1;
         attributeDescs[1].offset = offsetof(vertex_input_cube_t, color);
-        attributeDescs[2].binding = 1;
-        attributeDescs[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescs[2].location = 2;
-        attributeDescs[2].offset = 0;
 
-        pipelineInfo.vertexInputState.vertexAttributeDescriptionCount = 3;
+        pipelineInfo.vertexInputState.vertexAttributeDescriptionCount = 2;
         pipelineInfo.vertexInputState.pVertexAttributeDescriptions = attributeDescs;
-        pipelineInfo.vertexInputState.vertexBindingDescriptionCount = 2;
+        pipelineInfo.vertexInputState.vertexBindingDescriptionCount = 1;
         pipelineInfo.vertexInputState.pVertexBindingDescriptions = bindingDescs;
 
         pipelineInfo.depthStencilState.depthTestEnable = VK_TRUE;
@@ -341,15 +426,15 @@ void gameInit() {
         VK_ASSERT(vkCreateFence(vkglobals.device, &fenceInfo, VK_NULL_HANDLE, &gameglobals.frameFence), "failed to create fence\n");
     }
 
-    glm_perspective(glm_rad(45.0f), (f32)vkglobals.swapchainExtent.width / vkglobals.swapchainExtent.height, 15.0f, 0.01f, gameglobals.cubeBuffersMemoryRaw + sizeof(mat4));
+    glm_perspective(glm_rad(45.0f), (f32)vkglobals.swapchainExtent.width / vkglobals.swapchainExtent.height, 50.0f, 0.01f, gameglobals.cubeBuffersMemoryRaw + sizeof(mat4) * 2);
 
     {
-        offset_size_t aligned = getAlignedOffsetAndSize(sizeof(mat4), sizeof(mat4), vkglobals.deviceProperties.limits.nonCoherentAtomSize);
+        offset_size_t aligned = getAlignedOffsetAndSize(sizeof(mat4) * 2, sizeof(mat4), vkglobals.deviceProperties.limits.nonCoherentAtomSize);
 
         VkMappedMemoryRange memoryRange = {};
         memoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
         memoryRange.offset = aligned.offset;
-        memoryRange.size = aligned.size > INSTANCE_BUFFER_SIZE ? VK_WHOLE_SIZE : aligned.size;
+        memoryRange.size = (aligned.size + aligned.offset) > sizeof(mat4) * 3 ? VK_WHOLE_SIZE : aligned.size;
         memoryRange.memory = gameglobals.cubeBuffersMemory;
 
         VK_ASSERT(vkFlushMappedMemoryRanges(vkglobals.device, 1, &memoryRange), "failed to flush device memory\n");
@@ -376,6 +461,23 @@ void gameEvent(SDL_Event* e) {
         else if (e->key.key == SDLK_D) gameglobals.cam.velocity[0] = 0;
         else if (e->key.key == SDLK_SPACE) gameglobals.cam.velocity[1] = 0;
         else if (e->key.key == SDLK_LCTRL) gameglobals.cam.velocity[1] = 0;
+    } else if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+        if (e->button.button & SDL_BUTTON_LEFT) {
+            JPC_BodyInterface_SetPosition(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube), (JPC_Vec3){gameglobals.cam.position[0] * 2.0f, gameglobals.cam.position[1] * 2.0f, gameglobals.cam.position[2] * 2.0f, 0.0f}, JPC_ACTIVATION_ACTIVATE);
+
+            versor y, p;
+            glm_quatv(y, gameglobals.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
+            glm_quatv(p, gameglobals.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
+            glm_quat_mul(y, p, y);
+
+            mat4 rot;
+            glm_quat_mat4(y, rot);
+            vec3 forward;
+            glm_mat4_mulv3(rot, (vec3){0.0f, 0.0f, 1.0f}, 0.0f, forward);
+            glm_vec3_scale(forward, 5.0f, forward);
+
+            JPC_BodyInterface_SetLinearVelocity(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube), (JPC_Vec3){forward[0], forward[1], forward[2], 0.0f});
+        }
     } else if (e->type == SDL_EVENT_MOUSE_MOTION) {
         gameglobals.cam.yaw += (f32)e->motion.xrel / 400.0f;
         gameglobals.cam.pitch -= (f32)e->motion.yrel / 400.0f;
@@ -397,21 +499,36 @@ void updateCubeUbo() {
     }
 
     {
-        glm_quat_look(gameglobals.cam.position, y, gameglobals.cubeBuffersMemoryRaw);
-        glm_translate(gameglobals.cubeBuffersMemoryRaw, (vec3){-gameglobals.cam.position[0], -gameglobals.cam.position[1], -gameglobals.cam.position[2]});
+        glm_quat_look(gameglobals.cam.position, y, gameglobals.cubeBuffersMemoryRaw + sizeof(mat4));
+        glm_translate(gameglobals.cubeBuffersMemoryRaw + sizeof(mat4), (vec3){-gameglobals.cam.position[0], -gameglobals.cam.position[1], -gameglobals.cam.position[2]});
     }
 
-    VkDeviceSize alignedSize = sizeof(mat4) + getAlignCooficient(sizeof(mat4), vkglobals.deviceProperties.limits.nonCoherentAtomSize);
+    JPC_Mat44 cubeTransform = JPC_Body_GetWorldTransform(gameglobals.cube);
+
+    for (u32 i = 0; i < 3; i++) {
+        ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][i][0] = cubeTransform.col[i].x;
+        ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][i][1] = cubeTransform.col[i].y;
+        ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][i][2] = cubeTransform.col[i].z;
+        ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][i][3] = cubeTransform.col[i].w;
+    }
+    ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][3][0] = cubeTransform.col3.x;
+    ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][3][1] = cubeTransform.col3.y;
+    ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][3][2] = cubeTransform.col3.z;
+    ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][3][3] = 1.0f;
+
+    VkDeviceSize alignedSize = sizeof(mat4) * 2 + getAlignCooficient(sizeof(mat4) * 2, vkglobals.deviceProperties.limits.nonCoherentAtomSize);
     VkMappedMemoryRange memoryRange = {};
     memoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
     memoryRange.offset = 0;
-    memoryRange.size = alignedSize > INSTANCE_BUFFER_SIZE ? VK_WHOLE_SIZE : alignedSize;
+    memoryRange.size = alignedSize > sizeof(mat4) * 3 ? VK_WHOLE_SIZE : alignedSize;
     memoryRange.memory = gameglobals.cubeBuffersMemory;
 
     VK_ASSERT(vkFlushMappedMemoryRanges(vkglobals.device, 1, &memoryRange), "failed to flush device memory\n");
 }
 
 void gameRender() {
+    JPC_PhysicsSystem_Update(gameglobals.physicsSystem, gameglobals.deltaTime / 1000.0f, 1, gameglobals.tempAllocator, (JPC_JobSystem*)gameglobals.jobSystem);
+
     updateCubeUbo();
 
     VK_ASSERT(vkWaitForFences(vkglobals.device, 1, &gameglobals.frameFence, VK_FALSE, 0xFFFFFFFFFFFFFFFF), "failed to wait for fences\n");
@@ -475,13 +592,13 @@ void gameRender() {
 
         vkCmdBeginRenderingKHR(vkglobals.cmdBuffer, &renderingInfo);
 
-        VkDeviceSize vertexBufferOffsets[2] = {};
+        VkDeviceSize vertexBufferOffsets[1] = {};
         vkCmdBindPipeline(vkglobals.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gameglobals.cubePipeline);
-        vkCmdBindVertexBuffers(vkglobals.cmdBuffer, 0, 2, (VkBuffer[]){gameglobals.cubeVertexBuffer, gameglobals.cubeInstanceBuffer}, vertexBufferOffsets);
+        vkCmdBindVertexBuffers(vkglobals.cmdBuffer, 0, 1, &gameglobals.cubeVertexBuffer, vertexBufferOffsets);
         vkCmdBindIndexBuffer(vkglobals.cmdBuffer, gameglobals.cubeIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
         vkCmdBindDescriptorSets(vkglobals.cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, gameglobals.cubePipelineLayout, 0, 1, &gameglobals.cubeUboDescriptorSet, 0, VK_NULL_HANDLE);
 
-        vkCmdDrawIndexed(vkglobals.cmdBuffer, 36, 2, 0, 0, 0);
+        vkCmdDrawIndexed(vkglobals.cmdBuffer, 36, 1, 0, 0, 0);
 
         vkCmdEndRenderingKHR(vkglobals.cmdBuffer);
 
@@ -532,6 +649,25 @@ void gameRender() {
     VK_ASSERT(vkQueuePresentKHR(vkglobals.queue, &presentInfo), "failed to present swapchain image\n");
 }
 
+void joltQuit() {
+    JPC_BodyInterface_RemoveBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube));
+	JPC_BodyInterface_DestroyBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube));
+
+	JPC_BodyInterface_RemoveBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.floor));
+	JPC_BodyInterface_DestroyBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.floor));
+
+	JPC_PhysicsSystem_delete(gameglobals.physicsSystem);
+	JPC_BroadPhaseLayerInterface_delete(gameglobals.broadPhaseLayerInterface);
+	JPC_ObjectVsBroadPhaseLayerFilter_delete(gameglobals.objectVsBroadPhaseLayerFilter);
+	JPC_ObjectLayerPairFilter_delete(gameglobals.objectVsObjectLayerFilter);
+
+	JPC_JobSystemThreadPool_delete(gameglobals.jobSystem);
+	JPC_TempAllocatorImpl_delete(gameglobals.tempAllocator);
+
+	JPC_UnregisterTypes();
+	JPC_FactoryDelete();
+}
+
 void gameQuit() {
     vkDestroyFence(vkglobals.device, gameglobals.frameFence, VK_NULL_HANDLE);
     vkDestroySemaphore(vkglobals.device, gameglobals.renderingDoneSemaphore, VK_NULL_HANDLE);
@@ -539,7 +675,6 @@ void gameQuit() {
     vkDestroyPipeline(vkglobals.device, gameglobals.cubePipeline, VK_NULL_HANDLE);
     vkDestroyPipelineLayout(vkglobals.device, gameglobals.cubePipelineLayout, VK_NULL_HANDLE);
     vkUnmapMemory(vkglobals.device, gameglobals.cubeBuffersMemory);
-    vkDestroyBuffer(vkglobals.device, gameglobals.cubeInstanceBuffer, VK_NULL_HANDLE);
     vkDestroyBuffer(vkglobals.device, gameglobals.cubeUniformBuffer, VK_NULL_HANDLE);
     vkFreeMemory(vkglobals.device, gameglobals.cubeBuffersMemory, VK_NULL_HANDLE);
     vkDestroyBuffer(vkglobals.device, gameglobals.cubeIndexBuffer, VK_NULL_HANDLE);
@@ -549,4 +684,6 @@ void gameQuit() {
     vkFreeMemory(vkglobals.device, gameglobals.deviceLocalMemory, VK_NULL_HANDLE);
     vkDestroyDescriptorSetLayout(vkglobals.device, gameglobals.uboDescriptorSetLayout, VK_NULL_HANDLE);
     vkDestroyDescriptorPool(vkglobals.device, gameglobals.descriptorPool, VK_NULL_HANDLE);
+
+    joltQuit();
 }

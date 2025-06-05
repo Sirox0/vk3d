@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 #include <cglm/cglm.h>
+#include <JoltC/JoltC.h>
 
 #include "numtypes.h"
 
@@ -27,21 +28,19 @@ typedef struct {
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout uboDescriptorSetLayout;
 
-    // layout: cube vertex buffer -> cube index buffer -> depthTexture
+    // layout: depth texture -> cube vertex buffer -> cube index buffer
     VkDeviceMemory deviceLocalMemory;
 
     VkFormat depthTextureFormat;
     VkImage depthTexture;
     VkImageView depthTextureView;
-    VkDeviceSize depthTextureOffset;
 
     VkBuffer cubeVertexBuffer;
+    VkDeviceSize cubeVertexBufferOffset;
     VkBuffer cubeIndexBuffer;
     VkDeviceSize cubeIndexBufferOffset;
 
     VkBuffer cubeUniformBuffer;
-    VkBuffer cubeInstanceBuffer;
-    VkDeviceSize cubeInstanceBufferOffset;
     VkDeviceMemory cubeBuffersMemory;
     void* cubeBuffersMemoryRaw;
 
@@ -58,6 +57,19 @@ typedef struct {
     VkSemaphore swapchainReadySemaphore;
     VkSemaphore renderingDoneSemaphore;
     VkFence frameFence;
+
+
+
+    JPC_TempAllocatorImpl* tempAllocator;
+    JPC_JobSystemThreadPool* jobSystem;
+
+    JPC_BroadPhaseLayerInterface* broadPhaseLayerInterface;
+    JPC_ObjectVsBroadPhaseLayerFilter* objectVsBroadPhaseLayerFilter;
+    JPC_ObjectLayerPairFilter* objectVsObjectLayerFilter;
+    JPC_PhysicsSystem* physicsSystem;
+    JPC_BodyInterface* bodyInterface;
+    JPC_Body* floor;
+    JPC_Body* cube;
 } game_globals_t;
 
 #define MAX_STAR_SCALE 1.1f
