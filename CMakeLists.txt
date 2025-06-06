@@ -5,6 +5,11 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -O3")
 
+# jolt is forcing me to use C++
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -O3")
+
 option(VALIDATION "enable validation layer" OFF)
 
 if(VALIDATION)
@@ -34,12 +39,16 @@ find_package(Vulkan REQUIRED)
 
 set(PROFILER_IN_DEBUG_AND_RELEASE OFF)
 set(DEBUG_RENDERER_IN_DEBUG_AND_RELEASE OFF)
+set(FLOATING_POINT_EXCEPTIONS_ENABLED OFF)
 set(DOUBLE_PRECISION OFF)
+set(USE_AVX512 ON)
+set(ENABLE_OBJECT_STREAM OFF)
+set(ENABLE_INSTALL OFF)
 set(BUILD_SHARED_LIBS ON)
-add_subdirectory(external/JoltC)
+add_subdirectory(external/Jolt/Build)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
-target_link_libraries(${CMAKE_PROJECT_NAME} joltc SDL3::SDL3 Vulkan::Headers)
+target_link_libraries(${CMAKE_PROJECT_NAME} Jolt SDL3::SDL3 Vulkan::Headers)
 if(UNIX)
     target_link_libraries(${CMAKE_PROJECT_NAME} m)
 endif()

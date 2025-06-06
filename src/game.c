@@ -78,7 +78,7 @@ void joltInit() {
     JPC_FactoryInit();
     JPC_RegisterTypes();
 
-    gameglobals.tempAllocator = JPC_TempAllocatorImpl_new(10 * 256 * 256);
+    gameglobals.tempAllocator = JPC_TempAllocatorImpl_new(10 * 256 * 1024);
 	gameglobals.jobSystem = JPC_JobSystemThreadPool_new2(256, JPC_MAX_PHYSICS_BARRIERS);
 
     JPC_BroadPhaseLayerInterfaceFns bpl = {};
@@ -96,7 +96,7 @@ void joltInit() {
     gameglobals.objectVsObjectLayerFilter = JPC_ObjectLayerPairFilter_new(NULL, ovo);
 
     gameglobals.physicsSystem = JPC_PhysicsSystem_new();
-    JPC_PhysicsSystem_Init(gameglobals.physicsSystem, 256, 0, 256, 256, gameglobals.broadPhaseLayerInterface, gameglobals.objectVsBroadPhaseLayerFilter, gameglobals.objectVsObjectLayerFilter);
+    JPC_PhysicsSystem_Init(gameglobals.physicsSystem, 256, 0, 256, 1024, gameglobals.broadPhaseLayerInterface, gameglobals.objectVsBroadPhaseLayerFilter, gameglobals.objectVsObjectLayerFilter);
     
     gameglobals.bodyInterface = JPC_PhysicsSystem_GetBodyInterface(gameglobals.physicsSystem);
 
