@@ -1,3 +1,6 @@
 [submodule "external/JoltC"]
 	path = external/JoltC
 	url = https://github.com/SecondHalfGames/JoltC/
+[submodule "external/Jolt"]
+	path = external/Jolt
+	url = https://github.com/jrouwe/JoltPhysics
