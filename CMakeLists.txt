@@ -32,6 +32,9 @@ set(SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/vkFunctions.c
     ${CMAKE_CURRENT_LIST_DIR}/src/util.c
     ${CMAKE_CURRENT_LIST_DIR}/src/game.c
+
+    # everything related to jolt is in a seperate file
+    ${CMAKE_CURRENT_LIST_DIR}/src/jolt.cpp
 )
 
 find_package(SDL3 REQUIRED)
@@ -41,11 +44,11 @@ set(PROFILER_IN_DEBUG_AND_RELEASE OFF)
 set(DEBUG_RENDERER_IN_DEBUG_AND_RELEASE OFF)
 set(FLOATING_POINT_EXCEPTIONS_ENABLED OFF)
 set(DOUBLE_PRECISION OFF)
-set(USE_AVX512 ON)
 set(ENABLE_OBJECT_STREAM OFF)
 set(ENABLE_INSTALL OFF)
 set(BUILD_SHARED_LIBS ON)
 add_subdirectory(external/Jolt/Build)
+
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES})
 target_link_libraries(${CMAKE_PROJECT_NAME} Jolt SDL3::SDL3 Vulkan::Headers)

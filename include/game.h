@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan.h>
 #include <cglm/cglm.h>
-#include <JoltC/JoltC.h>
+#include <SDL3/SDL.h>
 
 #include "numtypes.h"
 
@@ -57,19 +57,6 @@ typedef struct {
     VkSemaphore swapchainReadySemaphore;
     VkSemaphore renderingDoneSemaphore;
     VkFence frameFence;
-
-
-
-    JPC_TempAllocatorImpl* tempAllocator;
-    JPC_JobSystemThreadPool* jobSystem;
-
-    JPC_BroadPhaseLayerInterface* broadPhaseLayerInterface;
-    JPC_ObjectVsBroadPhaseLayerFilter* objectVsBroadPhaseLayerFilter;
-    JPC_ObjectLayerPairFilter* objectVsObjectLayerFilter;
-    JPC_PhysicsSystem* physicsSystem;
-    JPC_BodyInterface* bodyInterface;
-    JPC_Body* floor;
-    JPC_Body* cube;
 } game_globals_t;
 
 #define MAX_STAR_SCALE 1.1f

@@ -1,7 +1,6 @@
 #include <vulkan/vulkan.h>
 #include <SDL3/SDL.h>
 #include <cglm/cglm.h>
-#include <JoltC/JoltC.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,123 +17,7 @@
 #include "garbage.h"
 #include "config.h"
 #include "mathext.h"
-
-u32 bplGetNumLayers(const void *self) {
-    (void)self;
-    return 2;
-}
-
-JPC_BroadPhaseLayer bplGetLayer(const void *self, JPC_ObjectLayer layer) {
-    (void)self;
-
-    switch (layer) {
-        case 0:
-            return 0;
-        case 1:
-            return 1;
-    }
-
-    return -1;
-}
-
-bool ovbShouldCollide(const void *self, JPC_ObjectLayer layer1, JPC_BroadPhaseLayer layer2) {
-    (void)self;
-
-    switch (layer1) {
-        case 0:
-            return layer2 == 1;
-        case 1:
-            return true;
-    }
-
-    return false;
-}
-
-bool ovoShouldCollide(const void *self, JPC_ObjectLayer layer1, JPC_ObjectLayer layer2) {
-    (void)self;
-
-    switch (layer1) {
-        case 0:
-            return layer2 == 1;
-        case 1:
-            return true;
-    }
-
-    return false;
-}
-
-#define JPC_ASSERT(expression) \
-    { \
-        JPC_String* err; \
-        if (!expression) { \
-            printf("jolt error: %s\n", JPC_String_c_str(err)); \
-            JPC_String_delete(err); \
-            exit(1); \
-        } \
-    }
-
-void joltInit() {
-    JPC_RegisterDefaultAllocator();
-    JPC_FactoryInit();
-    JPC_RegisterTypes();
-
-    gameglobals.tempAllocator = JPC_TempAllocatorImpl_new(10 * 256 * 1024);
-	gameglobals.jobSystem = JPC_JobSystemThreadPool_new2(256, JPC_MAX_PHYSICS_BARRIERS);
-
-    JPC_BroadPhaseLayerInterfaceFns bpl = {};
-    bpl.GetNumBroadPhaseLayers = bplGetNumLayers;
-    bpl.GetBroadPhaseLayer = bplGetLayer;
-
-    JPC_ObjectVsBroadPhaseLayerFilterFns ovb = {};
-    ovb.ShouldCollide = ovbShouldCollide;
-
-    JPC_ObjectLayerPairFilterFns ovo = {};
-    ovo.ShouldCollide = ovoShouldCollide;
-
-    gameglobals.broadPhaseLayerInterface = JPC_BroadPhaseLayerInterface_new(NULL, bpl);
-    gameglobals.objectVsBroadPhaseLayerFilter = JPC_ObjectVsBroadPhaseLayerFilter_new(NULL, ovb);
-    gameglobals.objectVsObjectLayerFilter = JPC_ObjectLayerPairFilter_new(NULL, ovo);
-
-    gameglobals.physicsSystem = JPC_PhysicsSystem_new();
-    JPC_PhysicsSystem_Init(gameglobals.physicsSystem, 256, 0, 256, 1024, gameglobals.broadPhaseLayerInterface, gameglobals.objectVsBroadPhaseLayerFilter, gameglobals.objectVsObjectLayerFilter);
-    
-    gameglobals.bodyInterface = JPC_PhysicsSystem_GetBodyInterface(gameglobals.physicsSystem);
-
-    JPC_BoxShapeSettings boxShapeSettings;
-	JPC_BoxShapeSettings_default(&boxShapeSettings);
-	boxShapeSettings.HalfExtent = (JPC_Vec3){100.0f, 1.0f, 100.0f, 1.0f};
-	boxShapeSettings.Density = 500.0f;
-
-    JPC_Shape* floorShape;
-    JPC_ASSERT(JPC_BoxShapeSettings_Create(&boxShapeSettings, &floorShape, &err));
-
-    JPC_BodyCreationSettings boxSettings;
-	JPC_BodyCreationSettings_default(&boxSettings);
-	boxSettings.Position = (JPC_RVec3){0.0f, 3.0f, 0.0f, 1.0f};
-	boxSettings.MotionType = JPC_MOTION_TYPE_STATIC;
-	boxSettings.ObjectLayer = 0;
-	boxSettings.Shape = floorShape;
-
-    gameglobals.floor = JPC_BodyInterface_CreateBody(gameglobals.bodyInterface, &boxSettings);
-	JPC_BodyInterface_AddBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.floor), JPC_ACTIVATION_DONT_ACTIVATE);
-
-	boxShapeSettings.HalfExtent = (JPC_Vec3){1.0f, 1.0f, 1.0f, 1.0f};
-	boxShapeSettings.Density = 50.0;
-
-    JPC_Shape* cubeShape;
-    JPC_ASSERT(JPC_BoxShapeSettings_Create(&boxShapeSettings, &cubeShape, &err));
-
-	boxSettings.Position = (JPC_RVec3){0.0f, -5.0f, 3.0f, 1.0f};
-	boxSettings.MotionType = JPC_MOTION_TYPE_DYNAMIC;
-	boxSettings.ObjectLayer = 1;
-	boxSettings.Shape = cubeShape;
-    boxSettings.GravityFactor *= -1;
-
-    gameglobals.cube = JPC_BodyInterface_CreateBody(gameglobals.bodyInterface, &boxSettings);
-	JPC_BodyInterface_AddBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube), JPC_ACTIVATION_ACTIVATE);
-
-    JPC_PhysicsSystem_OptimizeBroadPhase(gameglobals.physicsSystem);
-}
+#include "jolt.h"
 
 game_globals_t gameglobals = {};
 
@@ -143,11 +26,9 @@ game_globals_t gameglobals = {};
 #define GARBAGE_BUFFER_MEMORY_NUM 1
 #define GARBAGE_FENCE_NUM 1
 
-#define DEPTH_FORMATS_COUNT 3
+#define DEPTH_FORMAT_COUNT 3
 
 void gameInit() {
-    joltInit();
-    
     VkCommandBuffer garbageCmdBuffers[GARBAGE_CMD_BUFFER_NUM];
     VkBuffer garbageBuffers[GARBAGE_BUFFER_NUM];
     VkDeviceMemory garbageBuffersMem[GARBAGE_BUFFER_MEMORY_NUM];
@@ -156,10 +37,10 @@ void gameInit() {
     garbageCreate(GARBAGE_CMD_BUFFER_NUM, garbageCmdBuffers, GARBAGE_FENCE_NUM, garbageFences);
 
     {
-        VkFormat formats[DEPTH_FORMATS_COUNT] = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT};
+        VkFormat formats[DEPTH_FORMAT_COUNT] = {VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM_S8_UINT};
         
         gameglobals.depthTextureFormat = VK_FORMAT_UNDEFINED;
-        for (u32 i = 0; i < DEPTH_FORMATS_COUNT; i++) {
+        for (u32 i = 0; i < DEPTH_FORMAT_COUNT; i++) {
             VkFormatProperties props;
             vkGetPhysicalDeviceFormatProperties(vkglobals.physicalDevice, formats[i], &props);
             if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
@@ -292,6 +173,8 @@ void gameInit() {
 
         VK_ASSERT(vkQueueSubmit(vkglobals.queue, 1, &submitInfo, garbageFences[0]), "failed to submit command buffer\n");
     }
+
+    joltInit();
 
     createImageView(&gameglobals.depthTextureView, gameglobals.depthTexture, gameglobals.depthTextureFormat, VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
 
@@ -463,8 +346,6 @@ void gameEvent(SDL_Event* e) {
         else if (e->key.key == SDLK_LCTRL) gameglobals.cam.velocity[1] = 0;
     } else if (e->type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
         if (e->button.button & SDL_BUTTON_LEFT) {
-            JPC_BodyInterface_SetPosition(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube), (JPC_Vec3){gameglobals.cam.position[0] * 2.0f, gameglobals.cam.position[1] * 2.0f, gameglobals.cam.position[2] * 2.0f, 0.0f}, JPC_ACTIVATION_ACTIVATE);
-
             versor y, p;
             glm_quatv(y, gameglobals.cam.yaw, (vec3){0.0f, 1.0f, 0.0f});
             glm_quatv(p, gameglobals.cam.pitch, (vec3){1.0f, 0.0f, 0.0f});
@@ -476,7 +357,7 @@ void gameEvent(SDL_Event* e) {
             glm_mat4_mulv3(rot, (vec3){0.0f, 0.0f, 1.0f}, 0.0f, forward);
             glm_vec3_scale(forward, 5.0f, forward);
 
-            JPC_BodyInterface_SetLinearVelocity(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube), (JPC_Vec3){forward[0], forward[1], forward[2], 0.0f});
+            joltFireCube((vec3){gameglobals.cam.position[0], gameglobals.cam.position[1], gameglobals.cam.position[2]}, forward);
         }
     } else if (e->type == SDL_EVENT_MOUSE_MOTION) {
         gameglobals.cam.yaw += (f32)e->motion.xrel / 400.0f;
@@ -503,18 +384,7 @@ void updateCubeUbo() {
         glm_translate(gameglobals.cubeBuffersMemoryRaw + sizeof(mat4), (vec3){-gameglobals.cam.position[0], -gameglobals.cam.position[1], -gameglobals.cam.position[2]});
     }
 
-    JPC_Mat44 cubeTransform = JPC_Body_GetWorldTransform(gameglobals.cube);
-
-    for (u32 i = 0; i < 3; i++) {
-        ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][i][0] = cubeTransform.col[i].x;
-        ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][i][1] = cubeTransform.col[i].y;
-        ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][i][2] = cubeTransform.col[i].z;
-        ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][i][3] = cubeTransform.col[i].w;
-    }
-    ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][3][0] = cubeTransform.col3.x;
-    ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][3][1] = cubeTransform.col3.y;
-    ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][3][2] = cubeTransform.col3.z;
-    ((mat4*)gameglobals.cubeBuffersMemoryRaw)[0][3][3] = 1.0f;
+    joltUpdate((f32)gameglobals.deltaTime / 1000.0f, gameglobals.cubeBuffersMemoryRaw);
 
     VkDeviceSize alignedSize = sizeof(mat4) * 2 + getAlignCooficient(sizeof(mat4) * 2, vkglobals.deviceProperties.limits.nonCoherentAtomSize);
     VkMappedMemoryRange memoryRange = {};
@@ -527,8 +397,6 @@ void updateCubeUbo() {
 }
 
 void gameRender() {
-    JPC_PhysicsSystem_Update(gameglobals.physicsSystem, gameglobals.deltaTime / 1000.0f, 1, gameglobals.tempAllocator, (JPC_JobSystem*)gameglobals.jobSystem);
-
     updateCubeUbo();
 
     VK_ASSERT(vkWaitForFences(vkglobals.device, 1, &gameglobals.frameFence, VK_FALSE, 0xFFFFFFFFFFFFFFFF), "failed to wait for fences\n");
@@ -649,26 +517,9 @@ void gameRender() {
     VK_ASSERT(vkQueuePresentKHR(vkglobals.queue, &presentInfo), "failed to present swapchain image\n");
 }
 
-void joltQuit() {
-    JPC_BodyInterface_RemoveBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube));
-	JPC_BodyInterface_DestroyBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.cube));
-
-	JPC_BodyInterface_RemoveBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.floor));
-	JPC_BodyInterface_DestroyBody(gameglobals.bodyInterface, JPC_Body_GetID(gameglobals.floor));
-
-	JPC_PhysicsSystem_delete(gameglobals.physicsSystem);
-	JPC_BroadPhaseLayerInterface_delete(gameglobals.broadPhaseLayerInterface);
-	JPC_ObjectVsBroadPhaseLayerFilter_delete(gameglobals.objectVsBroadPhaseLayerFilter);
-	JPC_ObjectLayerPairFilter_delete(gameglobals.objectVsObjectLayerFilter);
-
-	JPC_JobSystemThreadPool_delete(gameglobals.jobSystem);
-	JPC_TempAllocatorImpl_delete(gameglobals.tempAllocator);
-
-	JPC_UnregisterTypes();
-	JPC_FactoryDelete();
-}
-
 void gameQuit() {
+    joltQuit();
+
     vkDestroyFence(vkglobals.device, gameglobals.frameFence, VK_NULL_HANDLE);
     vkDestroySemaphore(vkglobals.device, gameglobals.renderingDoneSemaphore, VK_NULL_HANDLE);
     vkDestroySemaphore(vkglobals.device, gameglobals.swapchainReadySemaphore, VK_NULL_HANDLE);
@@ -684,6 +535,4 @@ void gameQuit() {
     vkFreeMemory(vkglobals.device, gameglobals.deviceLocalMemory, VK_NULL_HANDLE);
     vkDestroyDescriptorSetLayout(vkglobals.device, gameglobals.uboDescriptorSetLayout, VK_NULL_HANDLE);
     vkDestroyDescriptorPool(vkglobals.device, gameglobals.descriptorPool, VK_NULL_HANDLE);
-
-    joltQuit();
 }
