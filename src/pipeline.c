@@ -122,6 +122,8 @@ void pipelineFillDefaultGraphicsPipeline(graphics_pipeline_info_t* pInfo) {
     pInfo->renderingInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
 
     pInfo->layout = VK_NULL_HANDLE; // must be set by user
+    pInfo->renderpass = VK_NULL_HANDLE; // must be set by user
+    pInfo->subpass = 0; // must be set by user
     pInfo->basePipelineHandle = VK_NULL_HANDLE;
     pInfo->basePipelineIndex = 0;
 }
